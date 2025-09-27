@@ -11,7 +11,7 @@ const fft_radix2 = @import("fft_radix2.zig");
 const fft_parallel = @import("fft_parallel.zig");
 const fft_mixed = @import("fft_mixed.zig");
 
-extern fn fftInPlace(allocator: std.mem.Allocator, data: []Complex) anyerror!void;
+const fftInPlace = @import("../fft.zig").fftInPlace;
 
 pub fn fftR2C(allocator: std.mem.Allocator, input: []const f64, output: []f64, magnitude: []f64) !void {
     const n = input.len;
