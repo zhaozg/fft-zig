@@ -5,6 +5,7 @@ const math = std.math;
 const Complex = @import("types.zig").Complex;
 const VectorF64 = @import("types.zig").VectorF64;
 const fft_utils = @import("utils.zig");
+const isPowerOfTwo = fft_utils.isPowerOfTwo;
 
 pub fn fftRadix2(data: []Complex) error{InvalidSize,OutOfMemory}!void {
     const n = data.len;
@@ -107,10 +108,6 @@ pub fn bitReversePermuteSIMD(data: []Complex) void {
 
 pub fn bitReversePermute(data: []Complex) void {
     bitReversePermuteSIMD(data);
-}
-
-fn isPowerOfTwo(n: usize) bool {
-    return n > 0 and (n & (n - 1)) == 0;
 }
 
 const expectApproxEqRel = std.testing.expectApproxEqRel;

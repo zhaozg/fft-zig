@@ -5,6 +5,9 @@ const math = std.math;
 const Complex = @import("types.zig").Complex;
 const fft_utils = @import("utils.zig");
 
+const isPowerOfTwo = fft_utils.isPowerOfTwo;
+const isPowerOfFour = fft_utils.isPowerOfFour;
+
 pub fn fftRadix4SIMD(data: []Complex) error{InvalidSize,OutOfMemory}!void {
     const n = data.len;
     if (n <= 1) return;
@@ -75,15 +78,6 @@ pub fn bitReverseRadix4(data: []Complex) void {
         }
     }
 }
-
-fn isPowerOfFour(n: usize) bool {
-    if (!isPowerOfTwo(n)) return false;
-    return (n & 0x55555555) != 0;
-}
-fn isPowerOfTwo(n: usize) bool {
-    return n > 0 and (n & (n - 1)) == 0;
-}
-
 
 const expect = std.testing.expect;
 const expectApproxEqRel = std.testing.expectApproxEqRel;

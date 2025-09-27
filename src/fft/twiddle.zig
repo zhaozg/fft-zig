@@ -87,9 +87,17 @@ const expectApproxEqRel = std.testing.expectApproxEqRel;
 const TEST_TOLERANCE = 1e-12;
 
 test "TwiddleFactorTable edge cases" {
+    // N=2, only twiddle_factors[0] exists, angle=0
     const TwiddleTable2 = TwiddleFactorTable(2);
-    try std.testing.expectApproxEqRel(@cos(-2.0 * std.math.pi / 2.0), TwiddleTable2.twiddle_factors[1 % 1].re, 1e-12);
+    try std.testing.expectApproxEqRel(@cos(0.0), TwiddleTable2.twiddle_factors[0].re, 1e-12);
 
+    // N=4, twiddle_factors[0] (angle=0), [1] (angle=-π/2)
     const TwiddleTable4 = TwiddleFactorTable(4);
-    try std.testing.expectApproxEqRel(@cos(-2.0 * std.math.pi / 4.0), TwiddleTable4.twiddle_factors[1].re, 1e-12);
+    try std.testing.expectApproxEqRel(@cos(0.0), TwiddleTable4.twiddle_factors[0].re, 1e-12);
+    try std.testing.expectApproxEqRel(@cos(-2.0 * std.math.pi * 1 / 4.0), TwiddleTable4.twiddle_factors[1].re, 1e-12);
+
+    // N=8, test angle=0, -π/2, -π
+    const TwiddleTable8 = TwiddleFactorTable(8);
+    try std.testing.expectApproxEqRel(@cos(0.0), TwiddleTable8.twiddle_factors[0].re, 1e-12);
+    try std.testing.expectApproxEqRel(@cos(-2.0 * std.math.pi * 2 / 8.0), TwiddleTable8.twiddle_factors[2].re, 1e-12); // -π/2
 }

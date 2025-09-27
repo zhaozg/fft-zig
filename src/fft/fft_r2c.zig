@@ -32,7 +32,7 @@ pub fn fftR2C(allocator: std.mem.Allocator, input: []const f64, output: []f64, m
         complex_buffer[i] = Complex{ .re = input[i], .im = 0.0 };
     }
     try fftInPlace(allocator, complex_buffer);
-    convertToOutputSIMD(complex_buffer[0..out_len], output, magnitude);
+
 }
 
 fn computeSmallFFT(input: []const f64, output: []f64, magnitude: []f64) !void {
@@ -141,6 +141,152 @@ test "Real-to-complex FFT and utilities" {
     try fftR2C(allocator, input, output, magnitude);
 }
 
+
+test "fftR2C 单一正弦波 1Hz" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 64;
+    const f = 1.0;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = @sin(2.0 * std.math.pi * f * @as(f64, @floatFromInt(i)) / @as(f64, @floatFromInt(N)));
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    // 1Hz主频幅值应接近N/2
+    try expectApproxEqRel(magnitude[1], N / 2, 1e-10);
+    // 其他频率幅值应远小于主频
+    for (2..out_len) |k| {
+        try expect(magnitude[k] < 1.0);
+    }
+}
+
+test "fftR2C 单一余弦波 2Hz" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 64;
+    const f = 2.0;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = @cos(2.0 * std.math.pi * f * @as(f64, @floatFromInt(i)) / @as(f64, @floatFromInt(N)));
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    // 2Hz主频幅值应接近N/2
+    try expectApproxEqRel(magnitude[2], N / 2, 1e-10);
+    for (0..out_len) |k| {
+        if (k != 2) try expect(magnitude[k] < 1.0);
+    }
+}
+
+test "fftR2C 直流分量" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 32;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = 3.0;
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    // 直流分量应为N*3
+    try expectApproxEqRel(output[0], N * 3.0, 1e-10);
+    try expectApproxEqRel(output[1], 0.0, 1e-10);
+    try expectApproxEqRel(magnitude[0], N * 3.0, 1e-10);
+    for (1..out_len) |k| {
+        try expect(magnitude[k] < 1e-8);
+    }
+}
+
+test "fftR2C 两频正弦叠加" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 128;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = @sin(2.0 * std.math.pi * 3.0 * @as(f64, @floatFromInt(i)) / @as(f64, @floatFromInt(N)))
+                  + 0.5 * @sin(2.0 * std.math.pi * 5.0 * @as(f64, @floatFromInt(i)) / @as(f64, @floatFromInt(N)));
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    try expectApproxEqRel(magnitude[3], N / 2, 1e-10);
+    try expectApproxEqRel(magnitude[5], N / 4, 1e-10);
+    for (0..out_len) |k| {
+        if (k != 3 and k != 5) try expect(magnitude[k] < 1.0);
+    }
+}
+
+test "fftR2C 交错正负" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 16;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = if (i % 2 == 0) 1.0 else -1.0;
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    // N/2频点幅值应为N
+    try expectApproxEqRel(magnitude[N/2], N, 1e-10);
+    for (0..out_len) |k| {
+        if (k != N/2) try expect(magnitude[k] < 1e-8);
+    }
+}
+
+test "fftR2C 全零输入" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    const N = 20;
+    const input = try allocator.alloc(f64, N);
+    defer allocator.free(input);
+    for (0..N) |i| {
+        input[i] = 0.0;
+    }
+    const out_len = N / 2 + 1;
+    const output = try allocator.alloc(f64, 2 * out_len);
+    defer allocator.free(output);
+    const magnitude = try allocator.alloc(f64, out_len);
+    defer allocator.free(magnitude);
+    try fftR2C(allocator, input, output, magnitude);
+    for (0..2*out_len) |i| {
+        try expectApproxEqRel(output[i], 0.0, 1e-12);
+    }
+    for (0..out_len) |i| {
+        try expectApproxEqRel(magnitude[i], 0.0, 1e-12);
+    }
+}
+
 test "SIMD magnitude calculation" {
     const complex_vals = [_]Complex{
         Complex{ .re = 3.0, .im = 4.0 }, // magnitude = 5.0
@@ -167,4 +313,73 @@ test "R2C FFT edge cases" {
     try expectApproxEqRel(out_one[0], 7.0, 1e-12);
     try expectApproxEqRel(out_one[1], 0.0, 1e-12);
     try expectApproxEqRel(mag_one[0], 7.0, 1e-12);
+}
+
+test "FFT huge data validation" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const test_sizes = [_]usize{
+        1048576, // 1M
+        2097152, // 2M
+        4194304, // 4M
+        5000000, // 5M
+    };
+
+    for (test_sizes) |size| {
+        std.debug.print("\n=== Testing HUGE data FFT with {d} samples ===\n", .{size});
+
+        const input = try allocator.alloc(f64, size);
+        defer allocator.free(input);
+
+        for (0..size) |i| {
+            if (i % 100000 == 0) {
+                input[i] = 1.0;
+            } else if (i % 10000 == 0) {
+                input[i] = 0.1;
+            } else {
+                input[i] = 0.01;
+            }
+        }
+
+        const out_len = size / 2 + 1;
+        const output = try allocator.alloc(f64, 2 * out_len);
+        defer allocator.free(output);
+        const magnitude = try allocator.alloc(f64, out_len);
+        defer allocator.free(magnitude);
+
+        const start_time = std.time.nanoTimestamp();
+        try fftR2C(allocator, input, output, magnitude);
+        const end_time = std.time.nanoTimestamp();
+
+        const elapsed_ms = @as(f64, @floatFromInt(@as(u64, @intCast(end_time - start_time)))) / 1e6;
+        const throughput = (@as(f64, @floatFromInt(size)) / (elapsed_ms / 1000.0)) / 1e6;
+
+        std.debug.print("Processing time: {d:.1}ms\n", .{elapsed_ms});
+        std.debug.print("Throughput: {d:.1} MSamples/s\n", .{throughput});
+
+        try expect(magnitude[0] > 0.0);
+        try expect(!math.isNan(magnitude[0]));
+        try expect(math.isFinite(magnitude[0]));
+
+        var peak_count: usize = 0;
+        var total_energy: f64 = 0.0;
+
+        for (0..@min(1000, out_len)) |i| {
+            try expect(!math.isNan(magnitude[i]));
+            try expect(math.isFinite(magnitude[i]));
+            try expect(magnitude[i] >= 0.0);
+
+            total_energy += magnitude[i] * magnitude[i];
+            if (magnitude[i] > 100.0) {
+                peak_count += 1;
+            }
+        }
+
+        try expect(total_energy > 100.0);
+        try expect(peak_count >= 1);
+
+        std.debug.print("Peak count: {d}, Total energy: {d:.1}\n", .{ peak_count, total_energy });
+    }
 }
