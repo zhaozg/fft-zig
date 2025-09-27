@@ -48,6 +48,21 @@ pub fn TwiddleFactorTable(comptime N: usize) type {
 
 pub const TwiddleTable = struct {
     cos_table: []f64,
+
+/// 生成单个twiddle factor
+pub fn genTwiddleFactor(theta: f64, k: usize) Complex {
+    return Complex{
+        .re = math.cos(theta * @as(f64, @floatFromInt(k))),
+        .im = math.sin(theta * @as(f64, @floatFromInt(k))),
+    };
+}
+
+/// 批量生成twiddle table
+pub fn genTwiddleTable(theta: f64, count: usize, out: []Complex) void {
+    for (0..count) |k| {
+        out[k] = genTwiddleFactor(theta, k);
+    }
+}
     sin_table: []f64,
     size: usize,
     pub fn init(allocator: std.mem.Allocator, table_size: usize) !TwiddleTable {

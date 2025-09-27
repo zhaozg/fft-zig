@@ -8,11 +8,11 @@ const fft_utils = @import("utils.zig");
 const isPowerOfTwo = fft_utils.isPowerOfTwo;
 const isPowerOfFour = fft_utils.isPowerOfFour;
 
-pub fn fftRadix4SIMD(data: []Complex) error{InvalidSize,OutOfMemory}!void {
+pub fn fftRadix4SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     const n = data.len;
     if (n <= 1) return;
     if (!isPowerOfFour(n)) return error.InvalidSize;
-    bitReverseRadix4(data);
+    fft_utils.bitReversePermuteGeneric(Complex, data, 4);
     var stage_size: usize = 4;
     while (stage_size <= n) : (stage_size *= 4) {
         const quarter_stage = stage_size / 4;
@@ -53,31 +53,12 @@ pub fn fftRadix4SIMD(data: []Complex) error{InvalidSize,OutOfMemory}!void {
     }
 }
 
-pub fn fftRadix4(data: []Complex) error{InvalidSize,OutOfMemory}!void {
+pub fn fftRadix4(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     const n = data.len;
     if (n <= 1 or !isPowerOfFour(n)) return error.InvalidSize;
     try fftRadix4SIMD(data);
 }
 
-pub fn bitReverseRadix4(data: []Complex) void {
-    const n = data.len;
-    if (n <= 1) return;
-    for (0..n) |i| {
-        var j: usize = 0;
-        var temp_i = i;
-        var temp_n = n;
-        while (temp_n > 1) {
-            j = j * 4 + (temp_i % 4);
-            temp_i /= 4;
-            temp_n /= 4;
-        }
-        if (i < j) {
-            const temp = data[i];
-            data[i] = data[j];
-            data[j] = temp;
-        }
-    }
-}
 
 const expect = std.testing.expect;
 const expectApproxEqRel = std.testing.expectApproxEqRel;
@@ -92,7 +73,7 @@ test "Radix-4 FFT bit-reversal and correctness" {
         Complex{ .re = 0.0, .im = 0.0 }, Complex{ .re = 1.0, .im = 0.0 },
         Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 },
     };
-    bitReverseRadix4(&test_data);
+    fft_utils.bitReversePermuteGeneric(Complex, test_data[0..], 4);
 
     // 4点基4反转应为 0,1,2,3 不变
     try expect(test_data[0].re == 0.0);
@@ -100,7 +81,6 @@ test "Radix-4 FFT bit-reversal and correctness" {
     try expect(test_data[2].re == 2.0);
     try expect(test_data[3].re == 3.0);
 }
-
 
 test "Radix-4 FFT edge cases" {
     var one = [_]Complex{Complex{ .re = 7.0, .im = 0.0 }};
@@ -110,21 +90,14 @@ test "Radix-4 FFT edge cases" {
         try expect(false);
     }
 
-    var not_pow4 = [_]Complex{
-        Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 },
-        Complex{ .re = 3.0, .im = 0.0 }, Complex{ .re = 4.0, .im = 0.0 },
-        Complex{ .re = 5.0, .im = 0.0 }, Complex{ .re = 6.0, .im = 0.0 }
-    };
+    var not_pow4 = [_]Complex{ Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 }, Complex{ .re = 4.0, .im = 0.0 }, Complex{ .re = 5.0, .im = 0.0 }, Complex{ .re = 6.0, .im = 0.0 } };
     if (fftRadix4(not_pow4[0..]) catch |err| err == error.InvalidSize) {
         // ok
     } else {
         try expect(false);
     }
 
-    var four = [_]Complex{
-        Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 },
-        Complex{ .re = 3.0, .im = 0.0 }, Complex{ .re = 4.0, .im = 0.0 }
-    };
+    var four = [_]Complex{ Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 }, Complex{ .re = 4.0, .im = 0.0 } };
     try fftRadix4(four[0..]);
     // 可加断言检查输出
 }

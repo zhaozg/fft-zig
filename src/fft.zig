@@ -9,7 +9,6 @@
 //! - Automatic algorithm selection based on input size
 //! - Support for both power-of-2 and arbitrary-length transforms
 
-
 const std = @import("std");
 const math = std.math;
 const builtin = @import("builtin");
@@ -62,7 +61,7 @@ pub fn fft(allocator: std.mem.Allocator, input: []const f64, output: []Complex) 
     }
 }
 
-pub fn fftInPlace(allocator: std.mem.Allocator, data: []Complex) error{InvalidSize,OutOfMemory}!void {
+pub fn fftInPlace(allocator: std.mem.Allocator, data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     // 自动选择算法，委托给各模块
     const n = data.len;
     if (n >= HUGE_DATA_THRESHOLD) {

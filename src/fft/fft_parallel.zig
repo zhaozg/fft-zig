@@ -117,7 +117,7 @@ test "Parallel FFT edge cases" {
     try fftParallelSIMD(std.heap.page_allocator, one[0..]);
     try expect(one[0].re == 7.0);
 
-    var not_pow2 = [_]Complex{Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 }};
+    var not_pow2 = [_]Complex{ Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 } };
     const result = fftParallelSIMD(std.heap.page_allocator, not_pow2[0..]) catch |err| err;
     try expect(result == error.InvalidSize);
 }

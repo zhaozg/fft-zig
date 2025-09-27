@@ -47,6 +47,6 @@ pub fn main() !void {
     // 打印前10个幅值
     std.debug.print("前10个幅值:\n", .{});
     for (0..@min(10, out_len)) |i| {
-        std.debug.print("{d}: {d:.6}\n", .{i, fft_m[i]});
+        std.debug.print("{d}: {d:.6}\n", .{ i, fft_m[i] });
     }
 }

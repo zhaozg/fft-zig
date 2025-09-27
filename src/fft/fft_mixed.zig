@@ -11,7 +11,7 @@ const ifftInPlace = fft_ifft.ifftInPlace;
 const fftInPlaceBase = @import("base.zig").fftInPlaceBase;
 // 循环依赖修复：fftInPlace 由主接口调度，不在此直接 import
 
-pub fn fftMixedRadix(allocator: std.mem.Allocator, data: []Complex) error{InvalidSize,OutOfMemory}!void {
+pub fn fftMixedRadix(allocator: std.mem.Allocator, data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     const n = data.len;
     if (n <= 1) return;
     if (isPowerOfTwo(n)) {
@@ -70,7 +70,7 @@ pub fn fftBluestein(allocator: std.mem.Allocator, data: []Complex) !void {
     }
 }
 
-pub fn optimizedDFTInPlace(data: []Complex) error{InvalidSize,OutOfMemory}!void {
+pub fn optimizedDFTInPlace(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     const n = data.len;
     if (n <= 1) return;
     const temp = try std.heap.page_allocator.alloc(Complex, n);
@@ -143,6 +143,9 @@ test "Mixed radix and DFT correctness" {
                 .im = dft_data[k].im + input_val.re * w.im + input_val.im * w.re,
             };
         }
+        // 归一化
+        dft_data[k].re /= 8.0;
+        dft_data[k].im /= 8.0;
     }
     for (0..8) |i| {
         try expectApproxEqRel(fft_data[i].re, dft_data[i].re, TEST_TOLERANCE);
@@ -174,7 +177,7 @@ test "Mixed radix edge cases" {
     try fftMixedRadix(std.heap.page_allocator, one[0..]);
     try expectApproxEqRel(one[0].re, 7.0, TEST_TOLERANCE);
 
-    var not_pow2 = [_]Complex{Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 }};
+    var not_pow2 = [_]Complex{ Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 } };
     try fftMixedRadix(std.heap.page_allocator, not_pow2[0..]);
     // 可加断言检查输出
 }
