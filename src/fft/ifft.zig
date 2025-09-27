@@ -4,14 +4,14 @@ const std = @import("std");
 const Complex = @import("types.zig").Complex;
 const fft_types = @import("types.zig");
 
-const fftInPlace = @import("../fft.zig").fftInPlace;
+// 循环依赖修复：fftInPlace 由主接口调度，不在此直接 import
 
 pub fn ifftInPlace(allocator: std.mem.Allocator, data: []Complex) !void {
     const n = data.len;
     for (data) |*v| {
         v.im = -v.im;
     }
-    try fftInPlace(allocator, data);
+    try @import("base.zig").fftInPlaceBase(allocator, data);
     for (data) |*v| {
         v.re = v.re / @as(f64, @floatFromInt(n));
         v.im = -v.im / @as(f64, @floatFromInt(n));

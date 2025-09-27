@@ -8,7 +8,8 @@ const fft_ifft = @import("ifft.zig");
 const fft_utils = @import("utils.zig");
 const fftRadix2 = fft_radix2.fftRadix2;
 const ifftInPlace = fft_ifft.ifftInPlace;
-const fftInPlace = @import("../fft.zig").fftInPlace;
+const fftInPlaceBase = @import("base.zig").fftInPlaceBase;
+// 循环依赖修复：fftInPlace 由主接口调度，不在此直接 import
 
 pub fn fftMixedRadix(allocator: std.mem.Allocator, data: []Complex) error{InvalidSize,OutOfMemory}!void {
     const n = data.len;
@@ -56,8 +57,8 @@ pub fn fftBluestein(allocator: std.mem.Allocator, data: []Complex) !void {
     for (n..m) |k| {
         b[k] = Complex{ .re = 0.0, .im = 0.0 };
     }
-    try fftInPlace(allocator, a);
-    try fftInPlace(allocator, b);
+    try fftInPlaceBase(allocator, a);
+    try fftInPlaceBase(allocator, b);
     var c = try allocator.alloc(Complex, m);
     defer allocator.free(c);
     for (0..m) |k| {

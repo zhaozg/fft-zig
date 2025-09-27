@@ -38,10 +38,23 @@ pub const SMALL_FFT_THRESHOLD = 256;
 // Twiddle 表和相关工具已迁移到 src/fft/twiddle.zig
 
 /// FFT 接口函数，具体实现已迁移到 src/fft 目录
-pub fn fft(_: std.mem.Allocator, input: []const f64, output: []Complex) !void {
-    _ = output;
-    // 这里可根据需要调用 fft_r2c.fftR2C 或其他接口
-    return fft_r2c.fftR2C(undefined, input, undefined, undefined);
+pub fn fft(allocator: std.mem.Allocator, input: []const f64, output: []Complex) !void {
+    // 分配临时缓冲区
+    const tmp_out = try allocator.alloc(f64, 2 * output.len);
+    defer allocator.free(tmp_out);
+
+    // 幅值谱可选
+    const tmp_mag = try allocator.alloc(f64, output.len);
+    defer allocator.free(tmp_mag);
+
+    // 调用高性能 FFT
+    try fft_r2c.fftR2C(allocator, input, tmp_out, tmp_mag);
+
+    // 转换为 Complex 输出
+    output[0] = Complex{ .re = tmp_out[0], .im = 0.0 };
+    for (1..output.len) |k| {
+        output[k] = Complex{ .re = tmp_out[2 * k], .im = tmp_out[2 * k + 1] };
+    }
 }
 
 pub fn fftInPlace(allocator: std.mem.Allocator, data: []Complex) error{InvalidSize,OutOfMemory}!void {
