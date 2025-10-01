@@ -143,9 +143,7 @@ test "Mixed radix and DFT correctness" {
                 .im = dft_data[k].im + input_val.re * w.im + input_val.im * w.re,
             };
         }
-        // 归一化
-        dft_data[k].re /= 8.0;
-        dft_data[k].im /= 8.0;
+        // Forward DFT does NOT normalize
     }
     for (0..8) |i| {
         try expectApproxEqRel(fft_data[i].re, dft_data[i].re, TEST_TOLERANCE);
