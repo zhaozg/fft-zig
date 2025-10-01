@@ -76,8 +76,7 @@ fn fftDecomposition(allocator: std.mem.Allocator, data: []Complex) !void {
 }
 
 fn findOptimalFactors(allocator: std.mem.Allocator, n: usize) ![]usize {
-    const FactorList = std.ArrayList(usize);
-    var factors = FactorList.init(allocator);
+    var factors = std.ArrayList(usize){ .items = &[_]usize{}, .capacity = 0, .allocator = allocator };
     errdefer factors.deinit();
     var remaining = n;
     while (remaining % 2 == 0 and remaining > 1) {
