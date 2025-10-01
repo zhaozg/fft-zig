@@ -54,7 +54,11 @@ pub fn fftBluestein(allocator: std.mem.Allocator, data: []Complex) !void {
             .im = math.sin(angle),
         };
     }
-    for (n..m) |k| {
+    // Mirror chirp values for circular convolution
+    for (1..n) |k| {
+        b[m - k] = b[k];
+    }
+    for (n..(m - n + 1)) |k| {
         b[k] = Complex{ .re = 0.0, .im = 0.0 };
     }
     try fftInPlaceBase(allocator, a);

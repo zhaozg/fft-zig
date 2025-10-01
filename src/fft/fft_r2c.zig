@@ -354,7 +354,10 @@ test "FFT huge data validation" {
         }
 
         // 直接检测主频点幅值
-        try expect(magnitude[5] > 0.4);
+        // For a pure sine wave of amplitude 1.0 at frequency 5, 
+        // the FFT magnitude at bin 5 should be approximately size/2
+        const expected_magnitude = @as(f64, @floatFromInt(size)) / 2.0;
+        try expect(magnitude[5] > expected_magnitude * 0.9); // Allow 10% tolerance
         try expect(total_energy > 0.1);
 
         std.debug.print("Total energy: {d:.1}\n", .{total_energy});
