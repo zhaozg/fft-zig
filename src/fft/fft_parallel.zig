@@ -16,10 +16,17 @@ pub const HUGE_DATA_THRESHOLD = 1000000;
 pub fn fftParallelSIMD(allocator: std.mem.Allocator, data: []Complex) !void {
     const n = data.len;
     if (n < 16384) {
-        return fftRadix2SIMD(data);
+        if (fft_utils.isPowerOfFour(n)) {
+            return fftRadix4SIMD(data);
+        } else {
+            return fftRadix2SIMD(data);
+        }
     }
-    // Always use radix-2 for now to debug
-    try fftRadix2SIMD(data);
+    if (fft_utils.isPowerOfFour(n)) {
+        try fftRadix4SIMD(data);
+    } else {
+        try fftRadix2SIMD(data);
+    }
     _ = allocator;
 }
 
@@ -27,8 +34,9 @@ pub fn fftHugeDataParallel(allocator: std.mem.Allocator, data: []Complex) !void 
     const n = data.len;
     const chunk_size = @min(n, 16 * 1024 * 1024);
     if (n <= chunk_size) {
-        if (fft_utils.isPowerOfTwo(n)) {
-            // Always use radix-2 for now to debug
+        if (fft_utils.isPowerOfFour(n)) {
+            try fftRadix4SIMD(data);
+        } else if (fft_utils.isPowerOfTwo(n)) {
             try fftRadix2SIMD(data);
         } else {
             try fftMixedRadixHuge(allocator, data);
@@ -53,7 +61,9 @@ fn fftChunkedProcessing(allocator: std.mem.Allocator, data: []Complex, chunk_siz
     while (processed < n) {
         const current_chunk_size = @min(chunk_size, n - processed);
         const chunk = data[processed .. processed + current_chunk_size];
-        if (fft_utils.isPowerOfTwo(current_chunk_size)) {
+        if (fft_utils.isPowerOfFour(current_chunk_size)) {
+            try fftRadix4SIMD(chunk);
+        } else if (fft_utils.isPowerOfTwo(current_chunk_size)) {
             try fftRadix2SIMD(chunk);
         } else {
             try fftMixedRadix(allocator, chunk);

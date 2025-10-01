@@ -68,9 +68,12 @@ pub fn fftInPlace(allocator: std.mem.Allocator, data: []Complex) error{ InvalidS
         try fft_parallel.fftHugeDataParallel(allocator, data);
     } else if (n >= PARALLEL_THRESHOLD and fft_utils.isPowerOfTwo(n)) {
         try fft_parallel.fftParallelSIMD(allocator, data);
+    } else if (n >= RADIX4_THRESHOLD and fft_utils.isPowerOfFour(n)) {
+        try fft_radix4.fftRadix4SIMD(data);
     } else if (n >= SIMD_THRESHOLD and fft_utils.isPowerOfTwo(n)) {
-        // Always use radix-2 for now to debug
         try fft_radix2.fftRadix2SIMD(data);
+    } else if (fft_utils.isPowerOfFour(n)) {
+        try fft_radix4.fftRadix4(data);
     } else if (fft_utils.isPowerOfTwo(n)) {
         try fft_radix2.fftRadix2(data);
     } else if (n % 4 == 0 and fft_utils.isPowerOfTwo(n / 4)) {
