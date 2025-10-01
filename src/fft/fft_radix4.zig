@@ -59,7 +59,6 @@ pub fn fftRadix4(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     try fftRadix4SIMD(data);
 }
 
-
 const expect = std.testing.expect;
 const expectApproxEqRel = std.testing.expectApproxEqRel;
 const TEST_TOLERANCE = 1e-12;

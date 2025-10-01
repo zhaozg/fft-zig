@@ -106,7 +106,6 @@ pub fn fftRadix2SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     // Forward FFT does NOT normalize - only IFFT should normalize
 }
 
-
 const expectApproxEqRel = std.testing.expectApproxEqRel;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const expect = std.testing.expect;
