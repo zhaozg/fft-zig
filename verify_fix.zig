@@ -1,5 +1,12 @@
-//! Simple verification that FFT accuracy fixes are working correctly
-//! Run with: zig run verify_fix.zig
+//! Simple standalone FFT verification tool
+//!
+//! This is an optional reference implementation with direct DFT for manual verification.
+//! It does NOT use the project's FFT library - it implements its own simple DFT for comparison.
+//!
+//! Usage: zig run verify_fix.zig
+//!
+//! Note: For comprehensive testing, use `zig build test` instead.
+//! This tool is provided for educational purposes and manual spot-checks.
 
 const std = @import("std");
 const math = std.math;
