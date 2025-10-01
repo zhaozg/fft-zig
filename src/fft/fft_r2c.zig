@@ -304,11 +304,7 @@ test "FFT huge data validation" {
     const allocator = gpa.allocator();
 
     const test_sizes = [_]usize{
-        1024, // power of 4
-        //512, // power of 2, not power of 4
-        //256, // small FFT path
-        //65536, // 64K - to test non-huge path
-        //1048576, // 1M
+        1048576, // 1M
         //2097152, // 2M
         //4194304, // 4M
         //5000000, // 5M
@@ -361,7 +357,6 @@ test "FFT huge data validation" {
         // For a pure sine wave of amplitude 1.0 at frequency 5,
         // the FFT magnitude at bin 5 should be approximately size/2
         const expected_magnitude = @as(f64, @floatFromInt(size)) / 2.0;
-        std.debug.print("Expected magnitude: {d:.1}, Actual magnitude[5]: {d:.1}\n", .{ expected_magnitude, magnitude[5] });
         try expect(magnitude[5] > expected_magnitude * 0.9); // Allow 10% tolerance
         try expect(total_energy > 0.1);
 
