@@ -18,11 +18,8 @@ pub fn fftParallelSIMD(allocator: std.mem.Allocator, data: []Complex) !void {
     if (n < 16384) {
         return fftRadix2SIMD(data);
     }
-    if (fft_utils.isPowerOfFour(n) and n >= 256) {
-        try fftRadix4SIMD(data);
-    } else {
-        try fftRadix2SIMD(data);
-    }
+    // Always use radix-2 for now to debug
+    try fftRadix2SIMD(data);
     _ = allocator;
 }
 
@@ -31,11 +28,8 @@ pub fn fftHugeDataParallel(allocator: std.mem.Allocator, data: []Complex) !void 
     const chunk_size = @min(n, 16 * 1024 * 1024);
     if (n <= chunk_size) {
         if (fft_utils.isPowerOfTwo(n)) {
-            if (fft_utils.isPowerOfFour(n) and n >= 1024) {
-                try fftRadix4SIMD(data);
-            } else {
-                try fftRadix2SIMD(data);
-            }
+            // Always use radix-2 for now to debug
+            try fftRadix2SIMD(data);
         } else {
             try fftMixedRadixHuge(allocator, data);
         }
