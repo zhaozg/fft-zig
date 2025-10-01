@@ -70,24 +70,50 @@ fn fftDecomposition(allocator: std.mem.Allocator, data: []Complex) !void {
 }
 
 fn findOptimalFactors(allocator: std.mem.Allocator, n: usize) ![]usize {
-    var factors = std.ArrayList(usize){ .items = &[_]usize{}, .capacity = 0, .allocator = allocator };
-    errdefer factors.deinit();
-    var remaining = n;
-    while (remaining % 2 == 0 and remaining > 1) {
-        try factors.append(2);
-        remaining /= 2;
-    }
-    const small_primes = [_]usize{ 3, 5, 7, 11, 13 };
-    for (small_primes) |prime| {
-        while (remaining % prime == 0 and remaining > 1) {
-            try factors.append(prime);
-            remaining /= prime;
+    const builtin = @import("builtin");
+    const is_zig_015_or_later = builtin.zig_version.minor >= 15;
+
+    if (is_zig_015_or_later) {
+        // Zig 0.15+ API - allocator passed to methods
+        var factors = std.ArrayList(usize){ .items = &[_]usize{}, .capacity = 0 };
+        errdefer factors.deinit(allocator);
+        var remaining = n;
+        while (remaining % 2 == 0 and remaining > 1) {
+            try factors.append(allocator, 2);
+            remaining /= 2;
         }
+        const small_primes = [_]usize{ 3, 5, 7, 11, 13 };
+        for (small_primes) |prime| {
+            while (remaining % prime == 0 and remaining > 1) {
+                try factors.append(allocator, prime);
+                remaining /= prime;
+            }
+        }
+        if (remaining > 1) {
+            try factors.append(allocator, remaining);
+        }
+        return try factors.toOwnedSlice(allocator);
+    } else {
+        // Zig 0.14 API - allocator stored in struct
+        var factors = std.ArrayList(usize).init(allocator);
+        errdefer factors.deinit();
+        var remaining = n;
+        while (remaining % 2 == 0 and remaining > 1) {
+            try factors.append(2);
+            remaining /= 2;
+        }
+        const small_primes = [_]usize{ 3, 5, 7, 11, 13 };
+        for (small_primes) |prime| {
+            while (remaining % prime == 0 and remaining > 1) {
+                try factors.append(prime);
+                remaining /= prime;
+            }
+        }
+        if (remaining > 1) {
+            try factors.append(remaining);
+        }
+        return try factors.toOwnedSlice();
     }
-    if (remaining > 1) {
-        try factors.append(remaining);
-    }
-    return try factors.toOwnedSlice();
 }
 
 fn applyFactoredFFT(allocator: std.mem.Allocator, data: []Complex, factors: []const usize) !void {
