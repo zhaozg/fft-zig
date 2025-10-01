@@ -31,6 +31,8 @@ pub fn fftR2C(allocator: std.mem.Allocator, input: []const f64, output: []f64, m
         complex_buffer[i] = Complex{ .re = input[i], .im = 0.0 };
     }
     try fftInPlace(allocator, complex_buffer);
+    // Convert complex buffer to output format
+    convertToOutputSIMD(complex_buffer[0..out_len], output, magnitude);
 }
 
 fn computeSmallFFT(input: []const f64, output: []f64, magnitude: []f64) !void {

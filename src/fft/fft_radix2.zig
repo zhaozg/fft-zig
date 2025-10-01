@@ -39,11 +39,7 @@ pub fn fftRadix2(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
             }
         }
     }
-    // 最后整体归一化
-    for (0..n) |i| {
-        data[i].re /= @as(f64, @floatFromInt(n));
-        data[i].im /= @as(f64, @floatFromInt(n));
-    }
+    // Forward FFT does NOT normalize - only IFFT should normalize
 }
 
 pub fn fftRadix2SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
@@ -107,11 +103,7 @@ pub fn fftRadix2SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
             }
         }
     }
-    // 最后整体归一化
-    for (0..n) |i| {
-        data[i].re /= @as(f64, @floatFromInt(n));
-        data[i].im /= @as(f64, @floatFromInt(n));
-    }
+    // Forward FFT does NOT normalize - only IFFT should normalize
 }
 
 
@@ -129,7 +121,7 @@ test "Radix-2 FFT basic functionality" {
         try fftRadix2(data[0..]);
         try expectApproxEqRel(@as(f64, 42.0), data[0].re, TEST_TOLERANCE);
     }
-    // Size 2 FFT（归一化后幅值应为1.0）
+    // Size 2 FFT - without normalization, [1, -1] -> [0, 2]
     {
         var data = [_]Complex{
             Complex{ .re = 1.0, .im = 0.0 },
@@ -137,7 +129,7 @@ test "Radix-2 FFT basic functionality" {
         };
         try fftRadix2(data[0..]);
         try expectApproxEqRel(@as(f64, 0.0), data[0].re, TEST_TOLERANCE);
-        try expectApproxEqAbs(@as(f64, 1.0), data[1].re, TEST_TOLERANCE);
+        try expectApproxEqAbs(@as(f64, 2.0), data[1].re, TEST_TOLERANCE);
     }
 }
 
