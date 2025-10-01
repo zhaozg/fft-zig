@@ -9,9 +9,8 @@ const fft_utils = @import("utils.zig");
 pub fn fftInPlaceBase(allocator: std.mem.Allocator, data: []Complex) !void {
     const n = data.len;
     if (n <= 1) return;
-    if (fft_utils.isPowerOfFour(n)) {
-        try fft_radix4.fftRadix4SIMD(data);
-    } else if (fft_utils.isPowerOfTwo(n)) {
+    // Always use radix-2 for now due to radix-4 bug
+    if (fft_utils.isPowerOfTwo(n)) {
         try fft_radix2.fftRadix2SIMD(data);
     } else {
         return error.InvalidSize;

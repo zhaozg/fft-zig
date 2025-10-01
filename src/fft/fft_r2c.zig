@@ -305,9 +305,9 @@ test "FFT huge data validation" {
 
     const test_sizes = [_]usize{
         1048576, // 1M
-        //2097152, // 2M
-        //4194304, // 4M
-        //5000000, // 5M
+        2097152, // 2M
+        4194304, // 4M
+        5000000, // 5M
     };
 
     for (test_sizes) |size| {
