@@ -47,7 +47,6 @@ pub fn normalize(data: anytype, n: usize) void {
 
 /// 计算幅值谱
 pub fn calcMagnitude(data: anytype, out: []f64) void {
-    const std = @import("std");
     const math = std.math;
     for (data, 0..) |v, i| {
         out[i] = math.sqrt(v.re * v.re + v.im * v.im);
