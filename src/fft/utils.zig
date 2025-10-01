@@ -38,7 +38,7 @@ pub fn checkFftInput(n: usize, radix: usize) !void {
 }
 
 /// 归一化复数数组
-pub fn normalize(data: []anytype, n: usize) void {
+pub fn normalize(data: anytype, n: usize) void {
     for (data) |*v| {
         v.re /= @as(f64, @floatFromInt(n));
         v.im /= @as(f64, @floatFromInt(n));
@@ -46,7 +46,7 @@ pub fn normalize(data: []anytype, n: usize) void {
 }
 
 /// 计算幅值谱
-pub fn calcMagnitude(data: []anytype, out: []f64) void {
+pub fn calcMagnitude(data: anytype, out: []f64) void {
     const std = @import("std");
     const math = std.math;
     for (data, 0..) |v, i| {
