@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        zig-version: ['0.14.1', '0.15.1']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v2
+      with:
+        version: ${{ matrix.zig-version }}
+
+    - name: Verify Zig installation
+      run: zig version
+
+    - name: Build project
+      run: zig build
+
+    - name: Run build tests
+      run: zig build test
+
+    - name: Check code format
+      continue-on-error: true
+      run: |
+        if zig fmt --check build.zig src/; then
+          echo "✅ Code formatting check passed"
+        else
+          echo "⚠️ Code formatting issues found, but not failing CI"
+          echo "Run 'zig fmt build.zig src/' to fix formatting"
+        fi
+
+    - name: Upload performance data
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-data-${{ matrix.zig-version }}-${{ github.sha }}
+        path: .performance-data/
+        retention-days: 90
