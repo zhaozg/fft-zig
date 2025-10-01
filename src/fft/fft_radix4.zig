@@ -45,9 +45,9 @@ pub fn fftRadix4SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
                 const temp2 = Complex{ .re = x0.re - x2_w2.re, .im = x0.im - x2_w2.im };
                 const temp3 = Complex{ .re = x1_w1.re - x3_w3.re, .im = x1_w1.im - x3_w3.im };
                 data[idx0] = Complex{ .re = temp0.re + temp1.re, .im = temp0.im + temp1.im };
-                data[idx1] = Complex{ .re = temp2.re - temp3.im, .im = temp2.im + temp3.re };
+                data[idx1] = Complex{ .re = temp2.re + temp3.im, .im = temp2.im - temp3.re };
                 data[idx2] = Complex{ .re = temp0.re - temp1.re, .im = temp0.im - temp1.im };
-                data[idx3] = Complex{ .re = temp2.re + temp3.im, .im = temp2.im - temp3.re };
+                data[idx3] = Complex{ .re = temp2.re - temp3.im, .im = temp2.im + temp3.re };
             }
         }
     }
