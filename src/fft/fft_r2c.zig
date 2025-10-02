@@ -357,7 +357,7 @@ test "FFT huge data validation" {
         // For a pure sine wave of amplitude 1.0 at frequency 5,
         // the FFT magnitude at bin 5 should be approximately size/2
         const expected_magnitude = @as(f64, @floatFromInt(size)) / 2.0;
-        try expect(magnitude[5] > expected_magnitude * 0.9); // Allow 10% tolerance
+        try expect(magnitude[5] > expected_magnitude * 0.99); // Allow 1% tolerance
         try expect(total_energy > 0.1);
 
         std.debug.print("Total energy: {d:.1}\n", .{total_energy});
