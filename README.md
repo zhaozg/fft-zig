@@ -5,8 +5,10 @@ High-performance FFT (Fast Fourier Transform) implementation in Zig with SIMD op
 ## 当前状态 / Current Status
 
 - ✅ **CI 测试通过** - All tests passing on Zig 0.14.1 and 0.15.1
-- ✅ **FFT 精度正确** - FFT accuracy >99% for all test cases
-- ✅ **支持大数据** - Supports large data FFT (up to 5M samples)
+- ✅ **FFT 精度正确** - FFT accuracy verified with comprehensive tests (46/46 tests passing)
+- ✅ **支持大数据** - Supports large data FFT (up to 5M samples tested)
+- ✅ **性能优化** - Radix-4 is 60-64% faster than Radix-2
+- ✅ **全面测试** - Validation, performance, and edge case tests included
 
 ## 快速开始 / Quick Start
 
@@ -24,11 +26,38 @@ zig fmt build.zig src/
 ## 功能特性 / Features
 
 - ✅ Radix-2 FFT (SIMD优化)
-- ✅ Radix-4 FFT (SIMD优化)
-- ✅ Mixed-radix FFT (Bluestein算法)
+- ✅ Radix-4 FFT (SIMD优化, 比Radix-2快60-64%)
+- ✅ Mixed-radix FFT (Bluestein算法, 支持任意大小)
 - ✅ 并行处理大数据 / Parallel processing for large datasets
 - ✅ 实数到复数 FFT / Real-to-complex FFT
 - ✅ 逆FFT / Inverse FFT
+- ✅ 全面测试套件 / Comprehensive test suite (46 tests)
+
+## 测试覆盖 / Test Coverage
+
+### 正确性验证 / Correctness Validation
+- Unit impulse response
+- DC component
+- Single frequency detection
+- Parseval's theorem (energy conservation)
+- FFT-IFFT round-trip (error < 1e-10)
+- Linearity property
+- Conjugate symmetry for real signals
+
+### 性能测试 / Performance Tests
+- Various sizes (64 to 5M samples)
+- Radix-2 vs Radix-4 comparison
+- Large data handling
+- Memory allocation patterns
+
+### 边界情况 / Edge Cases
+- Zero input, extreme values (1e-100 to 1e100)
+- Complex input
+- Non-power-of-2 sizes (3, 5, 6, 7, 9, 10, 12, 15, ...)
+- Size 1 (identity transform)
+- FFT vs DFT accuracy comparison
+
+详细测试报告见 [TEST_REPORT.md](TEST_REPORT.md)
 
 ## 兼容性 / Compatibility
 
