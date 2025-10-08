@@ -2,157 +2,8 @@
 const std = @import("std");
 const fft = @import("fft.zig");
 
-// GMT0005 随机性检测指标
-const RandomnessMetrics = struct {
-    monobit_test: f64, // 单比特频数检验
-    frequency_block_test: f64, // 块内频数检验
-    runs_test: f64, // 游程检验
-    longest_run_test: f64, // 块内最长游程检验
-    spectral_test: f64, // 离散傅里叶检验 (DFT/FFT)
-
-    pub fn evaluate(self: *const RandomnessMetrics) void {
-        std.debug.print("\n=== GMT0005 随机性检测评价 ===\n", .{});
-        std.debug.print("1. 单比特频数检验 P值: {d:.6}\n", .{self.monobit_test});
-        std.debug.print("2. 块内频数检验 P值: {d:.6}\n", .{self.frequency_block_test});
-        std.debug.print("3. 游程检验 P值: {d:.6}\n", .{self.runs_test});
-        std.debug.print("4. 块内最长游程检验 P值: {d:.6}\n", .{self.longest_run_test});
-        std.debug.print("5. 离散傅里叶检验 P值: {d:.6}\n", .{self.spectral_test});
-
-        const threshold: f64 = 0.01; // 显著性水平
-        var passed: usize = 0;
-        const total: usize = 5;
-
-        if (self.monobit_test >= threshold) passed += 1;
-        if (self.frequency_block_test >= threshold) passed += 1;
-        if (self.runs_test >= threshold) passed += 1;
-        if (self.longest_run_test >= threshold) passed += 1;
-        if (self.spectral_test >= threshold) passed += 1;
-
-        std.debug.print("\n通过检验: {d}/{d}\n", .{ passed, total });
-
-        if (passed == total) {
-            std.debug.print("整体评价: ✓ 通过所有随机性检验\n", .{});
-        } else if (passed >= 4) {
-            std.debug.print("整体评价: △ 基本通过随机性检验\n", .{});
-        } else {
-            std.debug.print("整体评价: ✗ 未通过随机性检验\n", .{});
-        }
-    }
-};
-
-fn monobitTest(bits: []const f64) f64 {
-    // 单比特频数检验：统计0和1的数量是否均衡
-    var sum: f64 = 0.0;
-    for (bits) |bit| {
-        sum += bit; // +1 for 1, -1 for 0
-    }
-
-    const n = @as(f64, @floatFromInt(bits.len));
-    const s_obs = @abs(sum) / @sqrt(n);
-
-    // 计算P值（使用互补误差函数近似）
-    return erfc(s_obs / @sqrt(2.0));
-}
-
-fn frequencyBlockTest(bits: []const f64, block_size: usize) f64 {
-    // 块内频数检验
-    const n = bits.len;
-    const num_blocks = n / block_size;
-
-    if (num_blocks == 0) return 1.0;
-
-    var chi_squared: f64 = 0.0;
-    var i: usize = 0;
-    while (i < num_blocks) : (i += 1) {
-        var block_sum: f64 = 0.0;
-        for (0..block_size) |j| {
-            block_sum += bits[i * block_size + j];
-        }
-        const pi = (block_sum / @as(f64, @floatFromInt(block_size)) + 1.0) / 2.0;
-        chi_squared += (pi - 0.5) * (pi - 0.5);
-    }
-
-    chi_squared *= 4.0 * @as(f64, @floatFromInt(block_size));
-
-    // 返回近似P值
-    const df = @as(f64, @floatFromInt(num_blocks));
-    return igamc(df / 2.0, chi_squared / 2.0);
-}
-
-fn runsTest(bits: []const f64) f64 {
-    // 游程检验：检测序列中游程的数量
-    if (bits.len < 2) return 1.0;
-
-    var runs: usize = 1;
-    for (1..bits.len) |i| {
-        if (bits[i] != bits[i - 1]) {
-            runs += 1;
-        }
-    }
-
-    // 计算比例
-    var ones: usize = 0;
-    for (bits) |bit| {
-        if (bit > 0) ones += 1;
-    }
-
-    const n = @as(f64, @floatFromInt(bits.len));
-    const pi = @as(f64, @floatFromInt(ones)) / n;
-
-    // 前提检验：pi应该接近0.5
-    if (@abs(pi - 0.5) >= 2.0 / @sqrt(n)) {
-        return 0.0;
-    }
-
-    const v_obs = @as(f64, @floatFromInt(runs));
-    const expected = 2.0 * n * pi * (1.0 - pi);
-    const variance = 2.0 * n * pi * (1.0 - pi) * (2.0 * n * pi * (1.0 - pi) - 1.0) / (n - 1.0);
-
-    const z = (v_obs - expected) / @sqrt(variance);
-
-    return erfc(@abs(z) / @sqrt(2.0));
-}
-
-fn longestRunTest(bits: []const f64, block_size: usize) f64 {
-    // 块内最长游程检验
-    const n = bits.len;
-    const num_blocks = n / block_size;
-
-    if (num_blocks == 0) return 1.0;
-
-    var i: usize = 0;
-    var max_run_sum: f64 = 0.0;
-
-    while (i < num_blocks) : (i += 1) {
-        var max_run: usize = 0;
-        var current_run: usize = 0;
-        var prev_bit: f64 = 0;
-
-        for (0..block_size) |j| {
-            const bit = bits[i * block_size + j];
-            if (bit == prev_bit and bit > 0) {
-                current_run += 1;
-            } else {
-                if (current_run > max_run) max_run = current_run;
-                current_run = if (bit > 0) 1 else 0;
-            }
-            prev_bit = bit;
-        }
-        if (current_run > max_run) max_run = current_run;
-
-        max_run_sum += @as(f64, @floatFromInt(max_run));
-    }
-
-    const avg_max_run = max_run_sum / @as(f64, @floatFromInt(num_blocks));
-    const expected = @log2(@as(f64, @floatFromInt(block_size)));
-
-    // 简化的P值计算
-    const deviation = @abs(avg_max_run - expected) / expected;
-    return @max(0.0, 1.0 - deviation);
-}
-
 fn spectralTest(allocator: std.mem.Allocator, bits: []const f64) !f64 {
-    // 离散傅里叶检验（频谱检验）
+    // 离散傅里叶检验（频谱检验）- GMT0005
     const n = bits.len;
 
     // 分配FFT输出缓冲区
@@ -204,29 +55,6 @@ fn erfc(x: f64) f64 {
     return if (sign > 0) y else 2.0 - y;
 }
 
-fn igamc(a: f64, x: f64) f64 {
-    // 不完全伽马函数的互补函数近似
-    // 简化实现，返回近似P值
-    if (x < 0 or a <= 0) return 1.0;
-    if (x == 0) return 1.0;
-
-    // 使用近似公式
-    const lambda = x / a;
-    if (lambda < 1) {
-        return 1.0 - @exp(-x) * std.math.pow(f64, x, a) / gamma(a + 1);
-    } else {
-        return @exp(-x) * std.math.pow(f64, x, a) / gamma(a);
-    }
-}
-
-fn gamma(x: f64) f64 {
-    // Stirling近似
-    if (x < 0.5) return std.math.pi / (@sin(std.math.pi * x) * gamma(1.0 - x));
-    const z = x - 1.0;
-    const sqrt_2pi = @sqrt(2.0 * std.math.pi);
-    return sqrt_2pi * std.math.pow(f64, z + 1.0, z + 0.5) * @exp(-(z + 1.0));
-}
-
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
     var args = std.process.args();
@@ -235,7 +63,7 @@ pub fn main() !void {
     _ = args.next(); // 跳过程序名
     const filename = args.next() orelse {
         std.debug.print("用法: fft_bin <input_file>\n", .{});
-        std.debug.print("功能: 对二进制文件进行FFT分析和GMT0005随机性检测\n", .{});
+        std.debug.print("功能: 对二进制文件进行FFT频谱分析和离散傅里叶检验\n", .{});
         return error.InvalidArgs;
     };
 
@@ -263,18 +91,17 @@ pub fn main() !void {
 
     std.debug.print("读取完成，共 {d} 比特\n", .{idx});
 
-    // 执行GMT0005随机性检测
-    std.debug.print("\n开始GMT0005随机性检测...\n", .{});
+    // 执行GMT0005离散傅里叶检验
+    std.debug.print("\n=== GMT0005 离散傅里叶检验 ===\n", .{});
+    const spectral_p_value = try spectralTest(allocator, buf);
+    std.debug.print("离散傅里叶检验 P值: {d:.6}\n", .{spectral_p_value});
 
-    var metrics = RandomnessMetrics{
-        .monobit_test = monobitTest(buf),
-        .frequency_block_test = frequencyBlockTest(buf, 128),
-        .runs_test = runsTest(buf),
-        .longest_run_test = longestRunTest(buf, 128),
-        .spectral_test = try spectralTest(allocator, buf),
-    };
-
-    metrics.evaluate();
+    const threshold: f64 = 0.01; // 显著性水平
+    if (spectral_p_value >= threshold) {
+        std.debug.print("检验结果: ✓ 通过 (P值 >= {d:.2})\n", .{threshold});
+    } else {
+        std.debug.print("检验结果: ✗ 未通过 (P值 < {d:.2})\n", .{threshold});
+    }
 
     // 执行FFT频谱分析
     std.debug.print("\n=== FFT频谱分析 ===\n", .{});
