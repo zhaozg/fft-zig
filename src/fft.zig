@@ -162,4 +162,5 @@ test {
     _ = @import("fft/fft_parallel.zig");
     _ = @import("fft/fft_radix4.zig");
     _ = @import("fft/types.zig");
+    _ = @import("fft/validation.zig");
 }
