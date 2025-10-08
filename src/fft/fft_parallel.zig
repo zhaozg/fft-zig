@@ -11,7 +11,7 @@ const fftRadix4SIMD = fft_radix4.fftRadix4SIMD;
 const fftMixedRadix = fft_mixed.fftMixedRadix;
 const fft_utils = @import("utils.zig");
 pub const PARALLEL_THRESHOLD = 16384;
-pub const HUGE_DATA_THRESHOLD = 1000000;
+pub const HUGE_DATA_THRESHOLD = 262144; // Lower threshold for better algorithm selection
 
 pub fn fftParallelSIMD(allocator: std.mem.Allocator, data: []Complex) !void {
     const n = data.len;
@@ -32,111 +32,32 @@ pub fn fftParallelSIMD(allocator: std.mem.Allocator, data: []Complex) !void {
 
 pub fn fftHugeDataParallel(allocator: std.mem.Allocator, data: []Complex) !void {
     const n = data.len;
-    const chunk_size = @min(n, 16 * 1024 * 1024);
-    if (n <= chunk_size) {
-        if (fft_utils.isPowerOfFour(n)) {
-            try fftRadix4SIMD(data);
-        } else if (fft_utils.isPowerOfTwo(n)) {
-            try fftRadix2SIMD(data);
-        } else {
-            try fftMixedRadixHuge(allocator, data);
-        }
+    // For huge data, use optimized algorithms directly instead of chunking
+    // Chunking would break FFT correctness - FFT must be computed on entire dataset
+    if (fft_utils.isPowerOfFour(n)) {
+        try fftRadix4SIMD(data);
+    } else if (fft_utils.isPowerOfTwo(n)) {
+        try fftRadix2SIMD(data);
     } else {
-        try fftChunkedProcessing(allocator, data, chunk_size);
-    }
-}
-
-fn fftMixedRadixHuge(allocator: std.mem.Allocator, data: []Complex) !void {
-    const n = data.len;
-    if (n > 100 * 1024 * 1024) {
-        try fftDecomposition(allocator, data);
-    } else {
+        // For non-power-of-2, use mixed radix which has better performance
         try fftMixedRadix(allocator, data);
     }
 }
 
-fn fftChunkedProcessing(allocator: std.mem.Allocator, data: []Complex, chunk_size: usize) !void {
-    const n = data.len;
-    var processed: usize = 0;
-    while (processed < n) {
-        const current_chunk_size = @min(chunk_size, n - processed);
-        const chunk = data[processed .. processed + current_chunk_size];
-        if (fft_utils.isPowerOfFour(current_chunk_size)) {
-            try fftRadix4SIMD(chunk);
-        } else if (fft_utils.isPowerOfTwo(current_chunk_size)) {
-            try fftRadix2SIMD(chunk);
-        } else {
-            try fftMixedRadix(allocator, chunk);
-        }
-        processed += current_chunk_size;
-    }
-}
-
-fn fftDecomposition(allocator: std.mem.Allocator, data: []Complex) !void {
-    const n = data.len;
-    const factors = try findOptimalFactors(allocator, n);
-    defer allocator.free(factors);
-    try applyFactoredFFT(allocator, data, factors);
-}
-
-fn findOptimalFactors(allocator: std.mem.Allocator, n: usize) ![]usize {
-    const builtin = @import("builtin");
-    const is_zig_015_or_later = builtin.zig_version.minor >= 15;
-
-    if (is_zig_015_or_later) {
-        // Zig 0.15+ API - allocator passed to methods
-        var factors = std.ArrayList(usize){ .items = &[_]usize{}, .capacity = 0 };
-        errdefer factors.deinit(allocator);
-        var remaining = n;
-        while (remaining % 2 == 0 and remaining > 1) {
-            try factors.append(allocator, 2);
-            remaining /= 2;
-        }
-        const small_primes = [_]usize{ 3, 5, 7, 11, 13 };
-        for (small_primes) |prime| {
-            while (remaining % prime == 0 and remaining > 1) {
-                try factors.append(allocator, prime);
-                remaining /= prime;
-            }
-        }
-        if (remaining > 1) {
-            try factors.append(allocator, remaining);
-        }
-        return try factors.toOwnedSlice(allocator);
-    } else {
-        // Zig 0.14 API - allocator stored in struct
-        var factors = std.ArrayList(usize).init(allocator);
-        errdefer factors.deinit();
-        var remaining = n;
-        while (remaining % 2 == 0 and remaining > 1) {
-            try factors.append(2);
-            remaining /= 2;
-        }
-        const small_primes = [_]usize{ 3, 5, 7, 11, 13 };
-        for (small_primes) |prime| {
-            while (remaining % prime == 0 and remaining > 1) {
-                try factors.append(prime);
-                remaining /= prime;
-            }
-        }
-        if (remaining > 1) {
-            try factors.append(remaining);
-        }
-        return try factors.toOwnedSlice();
-    }
-}
-
-fn applyFactoredFFT(allocator: std.mem.Allocator, data: []Complex, factors: []const usize) !void {
+fn fftMixedRadixHuge(allocator: std.mem.Allocator, data: []Complex) !void {
+    // Removed - now using direct fftMixedRadix for all sizes
     try fftMixedRadix(allocator, data);
-    _ = factors;
 }
+
+// Note: Chunked processing removed - FFT cannot be correctly computed in chunks
+// FFT requires processing the entire dataset as a whole transform
 
 const expect = std.testing.expect;
 
 test "Parallel FFT threshold logic" {
     // 这里只做简单阈值分支测试
     try expect(PARALLEL_THRESHOLD == 16384);
-    try expect(HUGE_DATA_THRESHOLD == 1000000);
+    try expect(HUGE_DATA_THRESHOLD == 262144);
 }
 
 test "Parallel FFT edge cases" {
