@@ -18,24 +18,24 @@ pub fn main() !void {
     defer file.close();
 
     const file_size = try file.getEndPos();
-    const usable_n = file_size / @sizeOf(f64); // 向下取整
-    if (usable_n == 0) {
-        std.debug.print("文件中没有完整的 f64 数据\n", .{});
-        return error.InvalidInput;
-    }
 
-    const buf = try allocator.alloc(f64, usable_n);
+    const nbits = file_size * 8;
+    const buf = try allocator.alloc(f64, nbits);
     defer allocator.free(buf);
 
-    // 只读取完整的 f64 数据部分
-    const read_bytes = try file.readAll(std.mem.sliceAsBytes(buf));
-    if (read_bytes < usable_n * @sizeOf(f64)) {
-        std.debug.print("读取文件失败\n", .{});
-        return error.ReadFailed;
+    var byte: u8 = undefined;
+    var idx: usize = 0;
+
+    while (file.read(std.mem.asBytes(&byte)) catch 0 != 0) {
+        for (0..8) |i| {
+            const bit = (byte >> @as(u3, @intCast(i))) & 1;
+            buf[idx] = if (bit == 1) 1.0 else -1.0;
+            idx += 1;
+        }
     }
 
     // 分配输出缓冲区
-    const out_len = usable_n / 2 + 1;
+    const out_len = nbits / 2 + 1;
     const fft_out = try allocator.alloc(f64, 2 * out_len);
     defer allocator.free(fft_out);
     const fft_m = try allocator.alloc(f64, out_len);
