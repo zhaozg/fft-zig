@@ -163,4 +163,6 @@ test {
     _ = @import("fft/fft_radix4.zig");
     _ = @import("fft/types.zig");
     _ = @import("fft/validation.zig");
+    _ = @import("fft/performance.zig");
+    _ = @import("fft/edge_cases.zig");
 }

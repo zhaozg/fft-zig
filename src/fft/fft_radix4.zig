@@ -55,7 +55,9 @@ pub fn fftRadix4SIMD(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
 
 pub fn fftRadix4(data: []Complex) error{ InvalidSize, OutOfMemory }!void {
     const n = data.len;
-    if (n <= 1 or !isPowerOfFour(n)) return error.InvalidSize;
+    if (n == 0) return error.InvalidSize;
+    if (n == 1) return; // Identity transform
+    if (!isPowerOfFour(n)) return error.InvalidSize;
     try fftRadix4SIMD(data);
 }
 
@@ -83,11 +85,10 @@ test "Radix-4 FFT bit-reversal and correctness" {
 
 test "Radix-4 FFT edge cases" {
     var one = [_]Complex{Complex{ .re = 7.0, .im = 0.0 }};
-    if (fftRadix4(one[0..]) catch |err| err == error.InvalidSize) {
-        // ok
-    } else {
-        try expect(false);
-    }
+    // Size 1 should now work (identity transform)
+    try fftRadix4(one[0..]);
+    try expect(one[0].re == 7.0);
+    try expect(one[0].im == 0.0);
 
     var not_pow4 = [_]Complex{ Complex{ .re = 1.0, .im = 0.0 }, Complex{ .re = 2.0, .im = 0.0 }, Complex{ .re = 3.0, .im = 0.0 }, Complex{ .re = 4.0, .im = 0.0 }, Complex{ .re = 5.0, .im = 0.0 }, Complex{ .re = 6.0, .im = 0.0 } };
     if (fftRadix4(not_pow4[0..]) catch |err| err == error.InvalidSize) {
