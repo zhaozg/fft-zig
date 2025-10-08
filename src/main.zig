@@ -67,12 +67,24 @@ pub fn main() !void {
         return error.InvalidArgs;
     };
 
-    // 打开并读取文件
     var file = try std.fs.cwd().openFile(filename, .{});
     defer file.close();
 
-    const file_size = try file.getEndPos();
-    std.debug.print("文件大小: {d} 字节, {d} 比特\n", .{ file_size, file_size * 8 });
+    // 检查第二个参数（如存在则使用，否则用文件大小推断）
+    var file_size: usize = 0;
+    const param = args.next();
+    if (param) |p| {
+        // 假设参数为数字
+        file_size = std.fmt.parseInt(usize, p, 10) catch {
+            std.debug.print("参数无效，必须为整数: {s}\n", .{p});
+            return error.InvalidArgs;
+        };
+        std.debug.print("检测到参数: {d}\n", .{file_size});
+    } else {
+        // 打开并读取文件
+        file_size = try file.getEndPos();
+        std.debug.print("文件大小: {d} 字节, {d} 比特\n", .{ file_size, file_size * 8 });
+    }
 
     const nbits = file_size * 8;
     const buf = try allocator.alloc(f64, nbits);
@@ -80,13 +92,16 @@ pub fn main() !void {
 
     var byte: u8 = undefined;
     var idx: usize = 0;
+    var bytes_read: usize = 0;
 
-    while (file.read(std.mem.asBytes(&byte)) catch 0 != 0) {
+    while (bytes_read < file_size and file.read(std.mem.asBytes(&byte)) catch 0 != 0) {
         for (0..8) |i| {
+            if (idx >= nbits) break;
             const bit = (byte >> @as(u3, @intCast(i))) & 1;
             buf[idx] = if (bit == 1) 1.0 else -1.0;
             idx += 1;
         }
+        bytes_read += 1;
     }
 
     std.debug.print("读取完成，共 {d} 比特\n", .{idx});
