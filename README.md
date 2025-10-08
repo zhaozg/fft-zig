@@ -137,4 +137,4 @@ fft.zig → (types, utils, fft_radix2, fft_radix4, fft_parallel, fft_mixed, ifft
 
 ## 许可 / License
 
-See repository license
+MIT License - See [LICENSE](LICENSE) file for details
