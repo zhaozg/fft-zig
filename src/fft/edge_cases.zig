@@ -37,8 +37,12 @@ fn testZeroInputGeneric(comptime T: type) !void {
     }
 }
 
-test "Edge case: Zero input f32" { try testZeroInputGeneric(f32); }
-test "Edge case: Zero input f64" { try testZeroInputGeneric(f64); }
+test "Edge case: Zero input f32" {
+    try testZeroInputGeneric(f32);
+}
+test "Edge case: Zero input f64" {
+    try testZeroInputGeneric(f64);
+}
 
 // 测试极小值
 fn testTinyValuesGeneric(comptime T: type) !void {
@@ -59,8 +63,12 @@ fn testTinyValuesGeneric(comptime T: type) !void {
     try expectApproxEqRel(expected_dc, data[0].re, @as(T, 1e-5));
 }
 
-test "Edge case: Very small values f32" { try testTinyValuesGeneric(f32); }
-test "Edge case: Very small values f64" { try testTinyValuesGeneric(f64); }
+test "Edge case: Very small values f32" {
+    try testTinyValuesGeneric(f32);
+}
+test "Edge case: Very small values f64" {
+    try testTinyValuesGeneric(f64);
+}
 
 // 测试复数输入
 fn testComplexInputGeneric(comptime T: type) !void {
@@ -98,8 +106,12 @@ fn testComplexInputGeneric(comptime T: type) !void {
     try expectApproxEqRel(expected_freq_energy, freq_energy, @as(T, 0.01));
 }
 
-test "Edge case: Complex input f32" { try testComplexInputGeneric(f32); }
-test "Edge case: Complex input f64" { try testComplexInputGeneric(f64); }
+test "Edge case: Complex input f32" {
+    try testComplexInputGeneric(f32);
+}
+test "Edge case: Complex input f64" {
+    try testComplexInputGeneric(f64);
+}
 
 // 测试交替符号输入
 fn testAlternatingSignsGeneric(comptime T: type) !void {
@@ -133,8 +145,12 @@ fn testAlternatingSignsGeneric(comptime T: type) !void {
     try expect(max_bin == nyquist_bin);
 }
 
-test "Edge case: Alternating signs f32" { try testAlternatingSignsGeneric(f32); }
-test "Edge case: Alternating signs f64" { try testAlternatingSignsGeneric(f64); }
+test "Edge case: Alternating signs f32" {
+    try testAlternatingSignsGeneric(f32);
+}
+test "Edge case: Alternating signs f64" {
+    try testAlternatingSignsGeneric(f64);
+}
 
 // 测试不同大小的非2的幂
 fn testNonPowerOfTwoGeneric(comptime T: type) !void {
@@ -160,8 +176,12 @@ fn testNonPowerOfTwoGeneric(comptime T: type) !void {
     }
 }
 
-test "Edge case: Non-power-of-2 sizes f32" { try testNonPowerOfTwoGeneric(f32); }
-test "Edge case: Non-power-of-2 sizes f64" { try testNonPowerOfTwoGeneric(f64); }
+test "Edge case: Non-power-of-2 sizes f32" {
+    try testNonPowerOfTwoGeneric(f32);
+}
+test "Edge case: Non-power-of-2 sizes f64" {
+    try testNonPowerOfTwoGeneric(f64);
+}
 
 // 测试精度：比较FFT与DFT
 fn testAccuracyGeneric(comptime T: type) !void {
@@ -208,8 +228,12 @@ fn testAccuracyGeneric(comptime T: type) !void {
     }
 }
 
-test "Edge case: Accuracy comparison FFT vs DFT f32" { try testAccuracyGeneric(f32); }
-test "Edge case: Accuracy comparison FFT vs DFT f64" { try testAccuracyGeneric(f64); }
+test "Edge case: Accuracy comparison FFT vs DFT f32" {
+    try testAccuracyGeneric(f32);
+}
+test "Edge case: Accuracy comparison FFT vs DFT f64" {
+    try testAccuracyGeneric(f64);
+}
 
 // 测试多次调用的一致性
 fn testConsistencyGeneric(comptime T: type) !void {
@@ -243,8 +267,12 @@ fn testConsistencyGeneric(comptime T: type) !void {
     }
 }
 
-test "Edge case: Consistency across multiple calls f32" { try testConsistencyGeneric(f32); }
-test "Edge case: Consistency across multiple calls f64" { try testConsistencyGeneric(f64); }
+test "Edge case: Consistency across multiple calls f32" {
+    try testConsistencyGeneric(f32);
+}
+test "Edge case: Consistency across multiple calls f64" {
+    try testConsistencyGeneric(f64);
+}
 
 // 测试边界条件：size = 1
 fn testSizeOneGeneric(comptime T: type) !void {
@@ -260,8 +288,12 @@ fn testSizeOneGeneric(comptime T: type) !void {
     try expectApproxEqRel(original.im, data[0].im, tol);
 }
 
-test "Edge case: Size 1 f32" { try testSizeOneGeneric(f32); }
-test "Edge case: Size 1 f64" { try testSizeOneGeneric(f64); }
+test "Edge case: Size 1 f32" {
+    try testSizeOneGeneric(f32);
+}
+test "Edge case: Size 1 f64" {
+    try testSizeOneGeneric(f64);
+}
 
 // 测试特定模式：脉冲序列
 fn testImpulseTrainGeneric(comptime T: type) !void {
@@ -289,5 +321,9 @@ fn testImpulseTrainGeneric(comptime T: type) !void {
     }
 }
 
-test "Edge case: Impulse train f32" { try testImpulseTrainGeneric(f32); }
-test "Edge case: Impulse train f64" { try testImpulseTrainGeneric(f64); }
+test "Edge case: Impulse train f32" {
+    try testImpulseTrainGeneric(f32);
+}
+test "Edge case: Impulse train f64" {
+    try testImpulseTrainGeneric(f64);
+}

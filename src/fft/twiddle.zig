@@ -102,7 +102,7 @@ const expect = std.testing.expect;
 /// 测试泛型 Twiddle Factor 表
 fn testTwiddleFactorTableGeneric(comptime T: type) !void {
     const F32_TOLERANCE: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
-    
+
     // N=2, only twiddle_factors[0] exists, angle=0
     const TwiddleTable2 = TwiddleFactorTable(T, 2);
     try expectApproxEqRel(@as(T, @cos(0.0)), TwiddleTable2.twiddle_factors[0].re, F32_TOLERANCE);
@@ -136,11 +136,11 @@ test "TwiddleFactorTable edge cases" {
 fn testTwiddleTableGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
     const F32_TOLERANCE: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
-    
+
     const table_size = 16;
     var table = try TwiddleTable(T).init(allocator, table_size);
     defer table.deinit(allocator);
-    
+
     // 测试获取 twiddle factor
     const twiddle = table.get(1, 8);
     const expected_angle = -2.0 * std.math.pi * @as(T, @floatFromInt(1)) / @as(T, @floatFromInt(8));

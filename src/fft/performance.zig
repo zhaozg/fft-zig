@@ -47,8 +47,12 @@ fn testBenchmarkGeneric(comptime T: type) !void {
     std.debug.print("\n", .{});
 }
 
-test "FFT performance benchmark: Various sizes f32" { try testBenchmarkGeneric(f32); }
-test "FFT performance benchmark: Various sizes f64" { try testBenchmarkGeneric(f64); }
+test "FFT performance benchmark: Various sizes f32" {
+    try testBenchmarkGeneric(f32);
+}
+test "FFT performance benchmark: Various sizes f64" {
+    try testBenchmarkGeneric(f64);
+}
 
 // 比较Radix-2和Radix-4性能
 fn testRadixCompareGeneric(comptime T: type) !void {
@@ -56,7 +60,7 @@ fn testRadixCompareGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
     const clock = std.Io.Clock.awake;
     // TODO: threshold 缩小阀值
-    const threshold = if (T==f64) 1e-5 else 1e-2;
+    const threshold = if (T == f64) 1e-5 else 1e-2;
 
     const test_sizes = [_]usize{ 64, 256, 1024, 4096 };
 
@@ -109,8 +113,12 @@ fn testRadixCompareGeneric(comptime T: type) !void {
     std.debug.print("\n", .{});
 }
 
-test "FFT performance: Radix-2 vs Radix-4 f32" { try testRadixCompareGeneric(f32); }
-test "FFT performance: Radix-2 vs Radix-4 f64" { try testRadixCompareGeneric(f64); }
+test "FFT performance: Radix-2 vs Radix-4 f32" {
+    try testRadixCompareGeneric(f32);
+}
+test "FFT performance: Radix-2 vs Radix-4 f64" {
+    try testRadixCompareGeneric(f64);
+}
 
 // 测试大数据处理性能
 fn testLargeDataGeneric(comptime T: type) !void {
@@ -156,8 +164,12 @@ fn testLargeDataGeneric(comptime T: type) !void {
     std.debug.print("\n", .{});
 }
 
-test "FFT performance: Large data handling f32" { try testLargeDataGeneric(f32); }
-test "FFT performance: Large data handling f64" { try testLargeDataGeneric(f64); }
+test "FFT performance: Large data handling f32" {
+    try testLargeDataGeneric(f32);
+}
+test "FFT performance: Large data handling f64" {
+    try testLargeDataGeneric(f64);
+}
 
 // 测试内存分配效率
 fn testMemoryGeneric(comptime T: type) !void {
@@ -191,5 +203,9 @@ fn testMemoryGeneric(comptime T: type) !void {
     std.debug.print("\n", .{});
 }
 
-test "FFT performance: Memory allocation patterns f32" { try testMemoryGeneric(f32); }
-test "FFT performance: Memory allocation patterns f64" { try testMemoryGeneric(f64); }
+test "FFT performance: Memory allocation patterns f32" {
+    try testMemoryGeneric(f32);
+}
+test "FFT performance: Memory allocation patterns f64" {
+    try testMemoryGeneric(f64);
+}

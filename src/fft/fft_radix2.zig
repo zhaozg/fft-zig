@@ -128,8 +128,12 @@ fn testRadix2BasicGeneric(comptime T: type) !void {
     }
 }
 
-test "Radix-2 FFT basic functionality f32" { try testRadix2BasicGeneric(f32); }
-test "Radix-2 FFT basic functionality f64" { try testRadix2BasicGeneric(f64); }
+test "Radix-2 FFT basic functionality f32" {
+    try testRadix2BasicGeneric(f32);
+}
+test "Radix-2 FFT basic functionality f64" {
+    try testRadix2BasicGeneric(f64);
+}
 
 fn testRadix2EdgeGeneric(comptime T: type) !void {
     const tolerance: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
@@ -140,14 +144,14 @@ fn testRadix2EdgeGeneric(comptime T: type) !void {
     try fftRadix2(T, one[0..]);
     try expectApproxEqRel(one[0].re, @as(T, 7.0), tolerance);
 
-    var not_pow2 = [_]std.math.Complex(T){ 
-        std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } 
-    };
+    var not_pow2 = [_]std.math.Complex(T){ std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } };
     const result = fftRadix2(T, not_pow2[0..]);
     try expect(result == error.InvalidSize);
 }
 
-test "Radix-2 FFT edge cases f32" { try testRadix2EdgeGeneric(f32); }
-test "Radix-2 FFT edge cases f64" { try testRadix2EdgeGeneric(f64); }
+test "Radix-2 FFT edge cases f32" {
+    try testRadix2EdgeGeneric(f32);
+}
+test "Radix-2 FFT edge cases f64" {
+    try testRadix2EdgeGeneric(f64);
+}

@@ -65,9 +65,9 @@ const expectApproxEqRel = std.testing.expectApproxEqRel;
 fn testRadix4BitReverseGeneric(comptime T: type) !void {
     // Bit-reversal test
     var test_data = [_]std.math.Complex(T){
-        std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) }, 
+        std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) },
         std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) },
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
+        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) },
         std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) },
     };
     fft_utils.bitReversePermuteGeneric(std.math.Complex(T), test_data[0..], 4);
@@ -79,8 +79,12 @@ fn testRadix4BitReverseGeneric(comptime T: type) !void {
     try expect(test_data[3].re == @as(T, 3.0));
 }
 
-test "Radix-4 FFT bit-reversal f32" { try testRadix4BitReverseGeneric(f32); }
-test "Radix-4 FFT bit-reversal f64" { try testRadix4BitReverseGeneric(f64); }
+test "Radix-4 FFT bit-reversal f32" {
+    try testRadix4BitReverseGeneric(f32);
+}
+test "Radix-4 FFT bit-reversal f64" {
+    try testRadix4BitReverseGeneric(f64);
+}
 
 fn testRadix4EdgeGeneric(comptime T: type) !void {
     var one = [_]std.math.Complex(T){std.math.Complex(T){ .re = @as(T, 7.0), .im = @as(T, 0.0) }};
@@ -89,28 +93,20 @@ fn testRadix4EdgeGeneric(comptime T: type) !void {
     try expect(one[0].re == @as(T, 7.0));
     try expect(one[0].im == @as(T, 0.0));
 
-    var not_pow4 = [_]std.math.Complex(T){ 
-        std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 4.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 5.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 6.0), .im = @as(T, 0.0) } 
-    };
+    var not_pow4 = [_]std.math.Complex(T){ std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 4.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 5.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 6.0), .im = @as(T, 0.0) } };
     if (fftRadix4(T, not_pow4[0..]) catch |err| err == error.InvalidSize) {
         // ok
     } else {
         try expect(false);
     }
 
-    var four = [_]std.math.Complex(T){ 
-        std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 4.0), .im = @as(T, 0.0) } 
-    };
+    var four = [_]std.math.Complex(T){ std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 4.0), .im = @as(T, 0.0) } };
     try fftRadix4(T, four[0..]);
 }
 
-test "Radix-4 FFT edge cases f32" { try testRadix4EdgeGeneric(f32); }
-test "Radix-4 FFT edge cases f64" { try testRadix4EdgeGeneric(f64); }
+test "Radix-4 FFT edge cases f32" {
+    try testRadix4EdgeGeneric(f32);
+}
+test "Radix-4 FFT edge cases f64" {
+    try testRadix4EdgeGeneric(f64);
+}

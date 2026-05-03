@@ -164,8 +164,12 @@ fn testMixedRadixGeneric(comptime T: type) !void {
     }
 }
 
-test "Mixed radix and DFT correctness f32" { try testMixedRadixGeneric(f32); }
-test "Mixed radix and DFT correctness f64" { try testMixedRadixGeneric(f64); }
+test "Mixed radix and DFT correctness f32" {
+    try testMixedRadixGeneric(f32);
+}
+test "Mixed radix and DFT correctness f64" {
+    try testMixedRadixGeneric(f64);
+}
 
 fn testMixedRadixEdgeGeneric(comptime T: type) !void {
     const tolerance: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
@@ -176,13 +180,13 @@ fn testMixedRadixEdgeGeneric(comptime T: type) !void {
     try fftMixedRadix(T, std.heap.page_allocator, one[0..]);
     try expectApproxEqRel(one[0].re, @as(T, 7.0), tolerance);
 
-    var not_pow2 = [_]std.math.Complex(T){ 
-        std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } 
-    };
+    var not_pow2 = [_]std.math.Complex(T){ std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } };
     try fftMixedRadix(T, std.heap.page_allocator, not_pow2[0..]);
 }
 
-test "Mixed radix edge cases f32" { try testMixedRadixEdgeGeneric(f32); }
-test "Mixed radix edge cases f64" { try testMixedRadixEdgeGeneric(f64); }
+test "Mixed radix edge cases f32" {
+    try testMixedRadixEdgeGeneric(f32);
+}
+test "Mixed radix edge cases f64" {
+    try testMixedRadixEdgeGeneric(f64);
+}

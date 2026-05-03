@@ -44,8 +44,12 @@ fn testNormalizeGeneric(comptime T: type) !void {
     try expectApproxEqRel(data[0].im, @as(T, 4.0), @as(T, 1e-6));
 }
 
-test "Normalize f32" { try testNormalizeGeneric(f32); }
-test "Normalize f64" { try testNormalizeGeneric(f64); }
+test "Normalize f32" {
+    try testNormalizeGeneric(f32);
+}
+test "Normalize f64" {
+    try testNormalizeGeneric(f64);
+}
 
 fn testCalcMagnitudeGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
@@ -60,8 +64,12 @@ fn testCalcMagnitudeGeneric(comptime T: type) !void {
     try expectApproxEqRel(out[1], @as(T, 0.0), @as(T, 1e-6));
 }
 
-test "CalcMagnitude f32" { try testCalcMagnitudeGeneric(f32); }
-test "CalcMagnitude f64" { try testCalcMagnitudeGeneric(f64); }
+test "CalcMagnitude f32" {
+    try testCalcMagnitudeGeneric(f32);
+}
+test "CalcMagnitude f64" {
+    try testCalcMagnitudeGeneric(f64);
+}
 
 /// FFT 输入参数校验，n为长度，radix为基数（2或4）
 pub fn checkFftInput(n: usize, radix: usize) !void {

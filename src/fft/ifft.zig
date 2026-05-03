@@ -32,8 +32,12 @@ fn testIFFTCorrectnessGeneric(comptime T: type) !void {
     try expectApproxEqRel(data[0].re, @as(T, 0.0), tolerance);
 }
 
-test "IFFT correctness f32" { try testIFFTCorrectnessGeneric(f32); }
-test "IFFT correctness f64" { try testIFFTCorrectnessGeneric(f64); }
+test "IFFT correctness f32" {
+    try testIFFTCorrectnessGeneric(f32);
+}
+test "IFFT correctness f64" {
+    try testIFFTCorrectnessGeneric(f64);
+}
 
 fn testIFFTEdgeGeneric(comptime T: type) !void {
     const tolerance: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
@@ -45,5 +49,9 @@ fn testIFFTEdgeGeneric(comptime T: type) !void {
     try expectApproxEqRel(one[0].re, @as(T, 7.0), tolerance);
 }
 
-test "IFFT edge cases f32" { try testIFFTEdgeGeneric(f32); }
-test "IFFT edge cases f64" { try testIFFTEdgeGeneric(f64); }
+test "IFFT edge cases f32" {
+    try testIFFTEdgeGeneric(f32);
+}
+test "IFFT edge cases f64" {
+    try testIFFTEdgeGeneric(f64);
+}

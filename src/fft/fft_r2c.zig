@@ -4,7 +4,7 @@ const std = @import("std");
 const math = std.math;
 const fft_types = @import("types.zig");
 
-const fftInPlace = @import("../fft.zig").fftInPlace;
+const fftInPlace = @import("fft_inplace.zig").fftInPlace;
 
 pub fn fftR2C(comptime T: type, allocator: std.mem.Allocator, input: []const T, output: []T, magnitude: []T) !void {
     const n = input.len;
@@ -96,8 +96,12 @@ fn testR2CGeneric(comptime T: type) !void {
     try expect(magnitude[10] > @as(T, 0.0));
 }
 
-test "Real-to-complex FFT f32" { try testR2CGeneric(f32); }
-test "Real-to-complex FFT f64" { try testR2CGeneric(f64); }
+test "Real-to-complex FFT f32" {
+    try testR2CGeneric(f32);
+}
+test "Real-to-complex FFT f64" {
+    try testR2CGeneric(f64);
+}
 
 fn testR2CSineGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
@@ -118,8 +122,12 @@ fn testR2CSineGeneric(comptime T: type) !void {
     try expectApproxEqRel(magnitude[1], @as(T, @floatFromInt(N)) / @as(T, 2.0), tolerance);
 }
 
-test "fftR2C 单一正弦波 f32" { try testR2CSineGeneric(f32); }
-test "fftR2C 单一正弦波 f64" { try testR2CSineGeneric(f64); }
+test "fftR2C 单一正弦波 f32" {
+    try testR2CSineGeneric(f32);
+}
+test "fftR2C 单一正弦波 f64" {
+    try testR2CSineGeneric(f64);
+}
 
 fn testR2CDcGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
@@ -140,8 +148,12 @@ fn testR2CDcGeneric(comptime T: type) !void {
     try expectApproxEqRel(output[1], @as(T, 0.0), tolerance);
 }
 
-test "fftR2C 直流分量 f32" { try testR2CDcGeneric(f32); }
-test "fftR2C 直流分量 f64" { try testR2CDcGeneric(f64); }
+test "fftR2C 直流分量 f32" {
+    try testR2CDcGeneric(f32);
+}
+test "fftR2C 直流分量 f64" {
+    try testR2CDcGeneric(f64);
+}
 
 fn testR2CZeroGeneric(comptime T: type) !void {
     const allocator = std.testing.allocator;
@@ -163,8 +175,12 @@ fn testR2CZeroGeneric(comptime T: type) !void {
     }
 }
 
-test "fftR2C 全零输入 f32" { try testR2CZeroGeneric(f32); }
-test "fftR2C 全零输入 f64" { try testR2CZeroGeneric(f64); }
+test "fftR2C 全零输入 f32" {
+    try testR2CZeroGeneric(f32);
+}
+test "fftR2C 全零输入 f64" {
+    try testR2CZeroGeneric(f64);
+}
 
 fn testR2CEdgeGeneric(comptime T: type) !void {
     const tolerance: T = if (T == f32) @as(T, 1e-6) else @as(T, 1e-12);
@@ -182,5 +198,9 @@ fn testR2CEdgeGeneric(comptime T: type) !void {
     try expectApproxEqRel(mag_one[0], @as(T, 7.0), tolerance);
 }
 
-test "R2C FFT edge cases f32" { try testR2CEdgeGeneric(f32); }
-test "R2C FFT edge cases f64" { try testR2CEdgeGeneric(f64); }
+test "R2C FFT edge cases f32" {
+    try testR2CEdgeGeneric(f32);
+}
+test "R2C FFT edge cases f64" {
+    try testR2CEdgeGeneric(f64);
+}

@@ -39,8 +39,12 @@ fn testUnitImpulseGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: Unit impulse response f32" { try testUnitImpulseGeneric(f32); }
-test "FFT validation: Unit impulse response f64" { try testUnitImpulseGeneric(f64); }
+test "FFT validation: Unit impulse response f32" {
+    try testUnitImpulseGeneric(f32);
+}
+test "FFT validation: Unit impulse response f64" {
+    try testUnitImpulseGeneric(f64);
+}
 
 // 测试2: 验证直流分量
 fn testDCComponentGeneric(comptime T: type) !void {
@@ -70,8 +74,12 @@ fn testDCComponentGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: DC component f32" { try testDCComponentGeneric(f32); }
-test "FFT validation: DC component f64" { try testDCComponentGeneric(f64); }
+test "FFT validation: DC component f32" {
+    try testDCComponentGeneric(f32);
+}
+test "FFT validation: DC component f64" {
+    try testDCComponentGeneric(f64);
+}
 
 // 测试3: 验证单频正弦波
 fn testSingleFreqGeneric(comptime T: type) !void {
@@ -106,8 +114,12 @@ fn testSingleFreqGeneric(comptime T: type) !void {
     try expectApproxEqRel(expected_peak, max_mag, @as(T, 0.01));
 }
 
-test "FFT validation: Single frequency sine wave f32" { try testSingleFreqGeneric(f32); }
-test "FFT validation: Single frequency sine wave f64" { try testSingleFreqGeneric(f64); }
+test "FFT validation: Single frequency sine wave f32" {
+    try testSingleFreqGeneric(f32);
+}
+test "FFT validation: Single frequency sine wave f64" {
+    try testSingleFreqGeneric(f64);
+}
 
 // 测试4: 验证Parseval定理
 fn testParsevalGeneric(comptime T: type) !void {
@@ -140,8 +152,12 @@ fn testParsevalGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: Parseval's theorem f32" { try testParsevalGeneric(f32); }
-test "FFT validation: Parseval's theorem f64" { try testParsevalGeneric(f64); }
+test "FFT validation: Parseval's theorem f32" {
+    try testParsevalGeneric(f32);
+}
+test "FFT validation: Parseval's theorem f64" {
+    try testParsevalGeneric(f64);
+}
 
 // 测试5: 验证FFT-IFFT往返
 fn testRoundTripGeneric(comptime T: type) !void {
@@ -176,8 +192,12 @@ fn testRoundTripGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: FFT-IFFT round trip f32" { try testRoundTripGeneric(f32); }
-test "FFT validation: FFT-IFFT round trip f64" { try testRoundTripGeneric(f64); }
+test "FFT validation: FFT-IFFT round trip f32" {
+    try testRoundTripGeneric(f32);
+}
+test "FFT validation: FFT-IFFT round trip f64" {
+    try testRoundTripGeneric(f64);
+}
 
 // 测试6: 验证线性性质
 fn testLinearityGeneric(comptime T: type) !void {
@@ -219,8 +239,12 @@ fn testLinearityGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: Linearity property f32" { try testLinearityGeneric(f32); }
-test "FFT validation: Linearity property f64" { try testLinearityGeneric(f64); }
+test "FFT validation: Linearity property f32" {
+    try testLinearityGeneric(f32);
+}
+test "FFT validation: Linearity property f64" {
+    try testLinearityGeneric(f64);
+}
 
 // 测试7: 验证共轭对称性
 fn testConjugateSymGeneric(comptime T: type) !void {
@@ -249,5 +273,9 @@ fn testConjugateSymGeneric(comptime T: type) !void {
     }
 }
 
-test "FFT validation: Conjugate symmetry f32" { try testConjugateSymGeneric(f32); }
-test "FFT validation: Conjugate symmetry f64" { try testConjugateSymGeneric(f64); }
+test "FFT validation: Conjugate symmetry f32" {
+    try testConjugateSymGeneric(f32);
+}
+test "FFT validation: Conjugate symmetry f64" {
+    try testConjugateSymGeneric(f64);
+}

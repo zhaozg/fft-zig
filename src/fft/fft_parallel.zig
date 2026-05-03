@@ -58,14 +58,14 @@ fn testParallelEdgeGeneric(comptime T: type) !void {
     try fftParallelSIMD(T, std.heap.page_allocator, one[0..]);
     try expect(one[0].re == @as(T, 7.0));
 
-    var not_pow2 = [_]std.math.Complex(T){ 
-        std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, 
-        std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } 
-    };
+    var not_pow2 = [_]std.math.Complex(T){ std.math.Complex(T){ .re = @as(T, 1.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 0.0) }, std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 0.0) } };
     const result = fftParallelSIMD(T, std.heap.page_allocator, not_pow2[0..]) catch |err| err;
     try expect(result == error.InvalidSize);
 }
 
-test "Parallel FFT edge cases f32" { try testParallelEdgeGeneric(f32); }
-test "Parallel FFT edge cases f64" { try testParallelEdgeGeneric(f64); }
+test "Parallel FFT edge cases f32" {
+    try testParallelEdgeGeneric(f32);
+}
+test "Parallel FFT edge cases f64" {
+    try testParallelEdgeGeneric(f64);
+}
