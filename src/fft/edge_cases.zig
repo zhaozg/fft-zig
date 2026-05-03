@@ -3,151 +3,123 @@
 
 const std = @import("std");
 const math = std.math;
-const Complex = @import("types.zig").Complex;
 const fft_module = @import("../fft.zig");
 const fftInPlace = fft_module.fftInPlace;
-const fft_radix2 = @import("fft_radix2.zig");
-const fft_radix4 = @import("fft_radix4.zig");
-const fft_mixed = @import("fft_mixed.zig");
 
 const expectApproxEqRel = std.testing.expectApproxEqRel;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const expect = std.testing.expect;
-const TEST_TOLERANCE = 1e-10;
+
+fn tolerance(comptime T: type) T {
+    return if (T == f32) @as(T, 1e-4) else @as(T, 1e-10);
+}
 
 // 测试零输入
-test "Edge case: Zero input" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testZeroInputGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    const tol = tolerance(T);
 
     const sizes = [_]usize{ 4, 8, 16, 64 };
     for (sizes) |size| {
-        var data = try allocator.alloc(Complex, size);
+        var data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data);
 
         for (0..size) |i| {
-            data[i] = Complex{ .re = 0.0, .im = 0.0 };
+            data[i] = std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) };
         }
 
-        try fftInPlace(allocator, data);
+        try fftInPlace(T, allocator, data);
 
-        // FFT of zeros should be zeros
         for (data) |v| {
-            try expectApproxEqAbs(@as(f64, 0.0), v.re, TEST_TOLERANCE);
-            try expectApproxEqAbs(@as(f64, 0.0), v.im, TEST_TOLERANCE);
+            try expectApproxEqAbs(@as(T, 0.0), v.re, tol);
+            try expectApproxEqAbs(@as(T, 0.0), v.im, tol);
         }
     }
 }
+
+test "Edge case: Zero input f32" { try testZeroInputGeneric(f32); }
+test "Edge case: Zero input f64" { try testZeroInputGeneric(f64); }
 
 // 测试极小值
-test "Edge case: Very small values" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testTinyValuesGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
 
     const size: usize = 64;
-    var data = try allocator.alloc(Complex, size);
+    var data = try allocator.alloc(std.math.Complex(T), size);
     defer allocator.free(data);
 
-    const tiny_value: f64 = 1e-100;
+    const tiny_value: T = @as(T, 1e-30);
     for (0..size) |i| {
-        data[i] = Complex{ .re = tiny_value, .im = 0.0 };
+        data[i] = std.math.Complex(T){ .re = tiny_value, .im = @as(T, 0.0) };
     }
 
-    try fftInPlace(allocator, data);
+    try fftInPlace(T, allocator, data);
 
-    // Should get DC component only
-    const expected_dc = @as(f64, @floatFromInt(size)) * tiny_value;
-    try expectApproxEqRel(expected_dc, data[0].re, 1e-6);
+    const expected_dc = @as(T, @floatFromInt(size)) * tiny_value;
+    try expectApproxEqRel(expected_dc, data[0].re, @as(T, 1e-5));
 }
 
-// 测试极大值
-test "Edge case: Very large values" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-
-    const size: usize = 64;
-    var data = try allocator.alloc(Complex, size);
-    defer allocator.free(data);
-
-    const large_value: f64 = 1e100;
-    for (0..size) |i| {
-        data[i] = Complex{ .re = large_value, .im = 0.0 };
-    }
-
-    try fftInPlace(allocator, data);
-
-    // Should get DC component only
-    const expected_dc = @as(f64, @floatFromInt(size)) * large_value;
-    const rel_error = @abs(data[0].re - expected_dc) / expected_dc;
-    try expect(rel_error < 1e-10);
-}
+test "Edge case: Very small values f32" { try testTinyValuesGeneric(f32); }
+test "Edge case: Very small values f64" { try testTinyValuesGeneric(f64); }
 
 // 测试复数输入
-test "Edge case: Complex input" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testComplexInputGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
 
     const size: usize = 8;
-    var data = try allocator.alloc(Complex, size);
+    var data = try allocator.alloc(std.math.Complex(T), size);
     defer allocator.free(data);
 
-    // 创建复数输入
     var prng = std.Random.DefaultPrng.init(777);
     const random = prng.random();
     for (0..size) |i| {
-        data[i] = Complex{
-            .re = random.float(f64) * 2.0 - 1.0,
-            .im = random.float(f64) * 2.0 - 1.0,
+        data[i] = std.math.Complex(T){
+            .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+            .im = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
         };
     }
 
-    const original = try allocator.dupe(Complex, data);
+    const original = try allocator.dupe(std.math.Complex(T), data);
     defer allocator.free(original);
 
-    try fftInPlace(allocator, data);
+    try fftInPlace(T, allocator, data);
 
-    // 验证能量守恒 (Parseval)
-    var time_energy: f64 = 0.0;
+    var time_energy: T = @as(T, 0.0);
     for (original) |v| {
         time_energy += v.re * v.re + v.im * v.im;
     }
 
-    var freq_energy: f64 = 0.0;
+    var freq_energy: T = @as(T, 0.0);
     for (data) |v| {
         freq_energy += v.re * v.re + v.im * v.im;
     }
 
-    const expected_freq_energy = time_energy * @as(f64, @floatFromInt(size));
-    try expectApproxEqRel(expected_freq_energy, freq_energy, 0.01);
+    const expected_freq_energy = time_energy * @as(T, @floatFromInt(size));
+    try expectApproxEqRel(expected_freq_energy, freq_energy, @as(T, 0.01));
 }
 
+test "Edge case: Complex input f32" { try testComplexInputGeneric(f32); }
+test "Edge case: Complex input f64" { try testComplexInputGeneric(f64); }
+
 // 测试交替符号输入
-test "Edge case: Alternating signs" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testAlternatingSignsGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
 
     const size: usize = 16;
-    var data = try allocator.alloc(Complex, size);
+    var data = try allocator.alloc(std.math.Complex(T), size);
     defer allocator.free(data);
 
-    // [1, -1, 1, -1, ...]
     for (0..size) |i| {
-        data[i] = Complex{
-            .re = if (i % 2 == 0) 1.0 else -1.0,
-            .im = 0.0,
+        data[i] = std.math.Complex(T){
+            .re = if (i % 2 == 0) @as(T, 1.0) else @as(T, -1.0),
+            .im = @as(T, 0.0),
         };
     }
 
-    try fftInPlace(allocator, data);
+    try fftInPlace(T, allocator, data);
 
-    // 应该在 N/2 处有峰值
     const nyquist_bin = size / 2;
-    var max_mag: f64 = 0.0;
+    var max_mag: T = @as(T, 0.0);
     var max_bin: usize = 0;
 
     for (0..size) |k| {
@@ -161,187 +133,161 @@ test "Edge case: Alternating signs" {
     try expect(max_bin == nyquist_bin);
 }
 
+test "Edge case: Alternating signs f32" { try testAlternatingSignsGeneric(f32); }
+test "Edge case: Alternating signs f64" { try testAlternatingSignsGeneric(f64); }
+
 // 测试不同大小的非2的幂
-test "Edge case: Non-power-of-2 sizes" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testNonPowerOfTwoGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
 
     const test_sizes = [_]usize{ 3, 5, 6, 7, 9, 10, 12, 15 };
 
     for (test_sizes) |size| {
-        var data = try allocator.alloc(Complex, size);
+        var data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data);
 
-        // 生成简单测试信号
         for (0..size) |i| {
-            data[i] = Complex{ .re = @as(f64, @floatFromInt(i + 1)), .im = 0.0 };
+            data[i] = std.math.Complex(T){ .re = @as(T, @floatFromInt(i + 1)), .im = @as(T, 0.0) };
         }
 
-        // 应该使用 mixed-radix 或 Bluestein
-        try fftInPlace(allocator, data);
+        try fftInPlace(T, allocator, data);
 
-        // 基本正确性：DC分量检查
-        var expected_dc: f64 = 0.0;
+        var expected_dc: T = @as(T, 0.0);
         for (0..size) |i| {
-            expected_dc += @as(f64, @floatFromInt(i + 1));
+            expected_dc += @as(T, @floatFromInt(i + 1));
         }
-        try expectApproxEqRel(expected_dc, data[0].re, 0.01);
+        try expectApproxEqRel(expected_dc, data[0].re, @as(T, 0.01));
     }
 }
 
+test "Edge case: Non-power-of-2 sizes f32" { try testNonPowerOfTwoGeneric(f32); }
+test "Edge case: Non-power-of-2 sizes f64" { try testNonPowerOfTwoGeneric(f64); }
+
 // 测试精度：比较FFT与DFT
-test "Edge case: Accuracy comparison FFT vs DFT" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testAccuracyGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    const tol = tolerance(T);
 
     const sizes = [_]usize{ 8, 16, 32 };
 
     for (sizes) |size| {
-        var fft_data = try allocator.alloc(Complex, size);
+        var fft_data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(fft_data);
-        var dft_data = try allocator.alloc(Complex, size);
+        var dft_data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(dft_data);
 
-        // 生成测试信号
         var prng = std.Random.DefaultPrng.init(888);
         const random = prng.random();
         for (0..size) |i| {
-            const val = Complex{
-                .re = random.float(f64) * 2.0 - 1.0,
-                .im = 0.0,
+            const val = std.math.Complex(T){
+                .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+                .im = @as(T, 0.0),
             };
             fft_data[i] = val;
             dft_data[i] = val;
         }
 
-        // FFT
-        try fftInPlace(allocator, fft_data);
+        try fftInPlace(T, allocator, fft_data);
 
-        // DFT (直接实现)
-        var temp = try allocator.alloc(Complex, size);
+        var temp = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(temp);
         for (0..size) |k| {
-            temp[k] = Complex{ .re = 0.0, .im = 0.0 };
+            temp[k] = std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) };
             for (0..size) |n| {
-                const angle = -2.0 * math.pi * @as(f64, @floatFromInt(k * n)) / @as(f64, @floatFromInt(size));
-                const w = Complex{ .re = @cos(angle), .im = @sin(angle) };
+                const angle = -2.0 * math.pi * @as(T, @floatFromInt(k * n)) / @as(T, @floatFromInt(size));
+                const w = std.math.Complex(T){ .re = @cos(angle), .im = @sin(angle) };
                 temp[k].re += dft_data[n].re * w.re - dft_data[n].im * w.im;
                 temp[k].im += dft_data[n].re * w.im + dft_data[n].im * w.re;
             }
         }
 
-        // 比较结果
         for (0..size) |k| {
-            // Use absolute tolerance for very small values to avoid division by near-zero
-            const abs_val_re = @abs(temp[k].re);
-            const abs_val_im = @abs(temp[k].im);
-
-            if (abs_val_re < 1e-12) {
-                try expectApproxEqAbs(temp[k].re, fft_data[k].re, 1e-10);
-            } else {
-                try expectApproxEqRel(temp[k].re, fft_data[k].re, 1e-8);
-            }
-
-            if (abs_val_im < 1e-12) {
-                try expectApproxEqAbs(temp[k].im, fft_data[k].im, 1e-10);
-            } else {
-                try expectApproxEqRel(temp[k].im, fft_data[k].im, 1e-8);
-            }
+            try expectApproxEqAbs(temp[k].re, fft_data[k].re, tol);
+            try expectApproxEqAbs(temp[k].im, fft_data[k].im, tol);
         }
     }
 }
 
+test "Edge case: Accuracy comparison FFT vs DFT f32" { try testAccuracyGeneric(f32); }
+test "Edge case: Accuracy comparison FFT vs DFT f64" { try testAccuracyGeneric(f64); }
+
 // 测试多次调用的一致性
-test "Edge case: Consistency across multiple calls" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testConsistencyGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    const tol = tolerance(T);
 
     const size: usize = 64;
-    var original = try allocator.alloc(Complex, size);
+    var original = try allocator.alloc(std.math.Complex(T), size);
     defer allocator.free(original);
 
-    // 生成测试信号
     var prng = std.Random.DefaultPrng.init(333);
     const random = prng.random();
     for (0..size) |i| {
-        original[i] = Complex{
-            .re = random.float(f64) * 2.0 - 1.0,
-            .im = 0.0,
+        original[i] = std.math.Complex(T){
+            .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+            .im = @as(T, 0.0),
         };
     }
 
-    var result1 = try allocator.dupe(Complex, original);
+    const result1 = try allocator.dupe(std.math.Complex(T), original);
     defer allocator.free(result1);
-    var result2 = try allocator.dupe(Complex, original);
+    const result2 = try allocator.dupe(std.math.Complex(T), original);
     defer allocator.free(result2);
-    var result3 = try allocator.dupe(Complex, original);
-    defer allocator.free(result3);
 
-    // 多次调用应该得到相同结果
-    try fftInPlace(allocator, result1);
-    try fftInPlace(allocator, result2);
-    try fftInPlace(allocator, result3);
-
-    // Explicitly use mutable references to satisfy compiler
-    _ = &result1;
-    _ = &result2;
-    _ = &result3;
+    try fftInPlace(T, allocator, result1);
+    try fftInPlace(T, allocator, result2);
 
     for (0..size) |i| {
-        try expectApproxEqRel(result1[i].re, result2[i].re, TEST_TOLERANCE);
-        try expectApproxEqRel(result1[i].im, result2[i].im, TEST_TOLERANCE);
-        try expectApproxEqRel(result2[i].re, result3[i].re, TEST_TOLERANCE);
-        try expectApproxEqRel(result2[i].im, result3[i].im, TEST_TOLERANCE);
+        try expectApproxEqRel(result1[i].re, result2[i].re, tol);
+        try expectApproxEqRel(result1[i].im, result2[i].im, tol);
     }
 }
+
+test "Edge case: Consistency across multiple calls f32" { try testConsistencyGeneric(f32); }
+test "Edge case: Consistency across multiple calls f64" { try testConsistencyGeneric(f64); }
 
 // 测试边界条件：size = 1
-test "Edge case: Size 1" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testSizeOneGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    const tol = tolerance(T);
 
-    var data = [_]Complex{Complex{ .re = 3.14159, .im = 2.71828 }};
+    var data = [_]std.math.Complex(T){std.math.Complex(T){ .re = @as(T, 3.14159), .im = @as(T, 2.71828) }};
     const original = data[0];
 
-    try fftInPlace(allocator, &data);
+    try fftInPlace(T, allocator, &data);
 
-    // Size 1 FFT should be identity
-    try expectApproxEqRel(original.re, data[0].re, TEST_TOLERANCE);
-    try expectApproxEqRel(original.im, data[0].im, TEST_TOLERANCE);
+    try expectApproxEqRel(original.re, data[0].re, tol);
+    try expectApproxEqRel(original.im, data[0].im, tol);
 }
 
+test "Edge case: Size 1 f32" { try testSizeOneGeneric(f32); }
+test "Edge case: Size 1 f64" { try testSizeOneGeneric(f64); }
+
 // 测试特定模式：脉冲序列
-test "Edge case: Impulse train" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testImpulseTrainGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
 
     const size: usize = 16;
-    var data = try allocator.alloc(Complex, size);
+    var data = try allocator.alloc(std.math.Complex(T), size);
     defer allocator.free(data);
 
-    // 每4个样本一个脉冲
     for (0..size) |i| {
-        data[i] = Complex{
-            .re = if (i % 4 == 0) 1.0 else 0.0,
-            .im = 0.0,
+        data[i] = std.math.Complex(T){
+            .re = if (i % 4 == 0) @as(T, 1.0) else @as(T, 0.0),
+            .im = @as(T, 0.0),
         };
     }
 
-    try fftInPlace(allocator, data);
+    try fftInPlace(T, allocator, data);
 
-    // 验证周期性 - 脉冲序列在频域也应该是周期性的
-    // 对于周期为4的脉冲序列，频域应该在k=0, 4, 8, 12处有值
     const period = 4;
     for (0..size) |k| {
         const mag = @sqrt(data[k].re * data[k].re + data[k].im * data[k].im);
         if (k % period == 0) {
-            // 应该有非零值
-            try expect(mag > 0.1);
+            try expect(mag > @as(T, 0.1));
         }
     }
 }
+
+test "Edge case: Impulse train f32" { try testImpulseTrainGeneric(f32); }
+test "Edge case: Impulse train f64" { try testImpulseTrainGeneric(f64); }

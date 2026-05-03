@@ -6,7 +6,9 @@
   - 正确性与高精度要求
 
 ## 条件与限制
-  1. zig 0.14.1 and 0.15.1 可以从 https://ziglang.org/download/index.json 提取下载URL
-  1. `zig fmt` 之后才能提交代码
-  1. `zig build test`, `zig build` 工作正常才能提交代码
+  - 当前程序状态为 `zig build` `zig build test` 均通过。
+  - 现在语法为 zig 0.16.0, 因为较新，你不一定掌握相关知识，你不要过度调整， 而是基于现在代码进行微调于修正。
+  - zig 可以从 https://ziglang.org/download/index.json 提取下载URL
+  - `zig fmt` 之后才能提交代码
+  - `zig build test`, `zig build` 工作正常才能提交代码
 

@@ -14,7 +14,7 @@ fn spectralTest(allocator: std.mem.Allocator, bits: []const f64) !f64 {
     defer allocator.free(fft_m);
 
     // 执行FFT
-    try fft.fftR2C(allocator, bits, fft_out, fft_m);
+    try fft.fftR2C(f64, allocator, bits, fft_out, fft_m);
 
     // 计算峰值阈值
     const threshold = @sqrt(@log(1.0 / 0.05) * @as(f64, @floatFromInt(n)));
@@ -55,20 +55,19 @@ fn erfc(x: f64) f64 {
     return if (sign > 0) y else 2.0 - y;
 }
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
     const allocator = std.heap.page_allocator;
-    var args = std.process.args();
-    defer args.deinit();
+    var args = std.process.Args.iterate(init.minimal.args);
 
-    _ = args.next(); // 跳过程序名
     const filename = args.next() orelse {
         std.debug.print("用法: fft_bin <input_file>\n", .{});
         std.debug.print("功能: 对二进制文件进行FFT频谱分析和离散傅里叶检验\n", .{});
         return error.InvalidArgs;
     };
 
-    var file = try std.fs.cwd().openFile(filename, .{});
-    defer file.close();
+    var file = try std.Io.Dir.cwd().openFile(io, filename, .{});
+    defer file.close(io);
 
     // 检查第二个参数（如存在则使用，否则用文件大小推断）
     var file_size: usize = 0;
@@ -82,7 +81,7 @@ pub fn main() !void {
         std.debug.print("检测到参数: {d}\n", .{file_size});
     } else {
         // 打开并读取文件
-        file_size = try file.getEndPos();
+        file_size = try file.length(io);
         std.debug.print("文件大小: {d} 字节, {d} 比特\n", .{ file_size, file_size * 8 });
     }
 
@@ -90,11 +89,15 @@ pub fn main() !void {
     const buf = try allocator.alloc(f64, nbits);
     defer allocator.free(buf);
 
-    var byte: u8 = undefined;
+    var buffer: [4096]u8 = undefined;
     var idx: usize = 0;
     var bytes_read: usize = 0;
 
-    while (bytes_read < file_size and file.read(std.mem.asBytes(&byte)) catch 0 != 0) {
+    var filereader = file.reader(io, &buffer);
+    const reader: *std.Io.Reader = &filereader.interface;
+
+    while (bytes_read < file_size) {
+        const byte = try reader.peekByte();
         for (0..8) |i| {
             if (idx >= nbits) break;
             const bit = (byte >> @as(u3, @intCast(i))) & 1;
@@ -127,12 +130,7 @@ pub fn main() !void {
     const fft_m = try allocator.alloc(f64, out_len);
     defer allocator.free(fft_m);
 
-    const start_time = std.time.nanoTimestamp();
-    try fft.fftR2C(allocator, buf, fft_out, fft_m);
-    const end_time = std.time.nanoTimestamp();
-
-    const elapsed_ms = @as(f64, @floatFromInt(@as(u64, @intCast(end_time - start_time)))) / 1e6;
-    std.debug.print("FFT处理时间: {d:.2}ms\n", .{elapsed_ms});
+    try fft.fftR2C(f64, allocator, buf, fft_out, fft_m);
 
     // 打印前10个幅值和统计信息
     std.debug.print("\n前10个频率分量幅值:\n", .{});

@@ -20,6 +20,7 @@ pub fn nextPowerOfTwo(n: usize) usize {
 
 const std = @import("std");
 const expect = std.testing.expect;
+const expectApproxEqRel = std.testing.expectApproxEqRel;
 
 test "Utility functions" {
     try expect(isPowerOfTwo(128));
@@ -30,6 +31,38 @@ test "Utility functions" {
     try expect(nextPowerOfTwo(16) == 16);
 }
 
+fn testNormalizeGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    var data = try allocator.alloc(std.math.Complex(T), 4);
+    defer allocator.free(data);
+    data[0] = std.math.Complex(T){ .re = @as(T, 4.0), .im = @as(T, 8.0) };
+    data[1] = std.math.Complex(T){ .re = @as(T, 2.0), .im = @as(T, 4.0) };
+    data[2] = std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) };
+    data[3] = std.math.Complex(T){ .re = @as(T, 6.0), .im = @as(T, 2.0) };
+    normalize(T, data, 2);
+    try expectApproxEqRel(data[0].re, @as(T, 2.0), @as(T, 1e-6));
+    try expectApproxEqRel(data[0].im, @as(T, 4.0), @as(T, 1e-6));
+}
+
+test "Normalize f32" { try testNormalizeGeneric(f32); }
+test "Normalize f64" { try testNormalizeGeneric(f64); }
+
+fn testCalcMagnitudeGeneric(comptime T: type) !void {
+    const allocator = std.testing.allocator;
+    var data = try allocator.alloc(std.math.Complex(T), 2);
+    defer allocator.free(data);
+    const out = try allocator.alloc(T, 2);
+    defer allocator.free(out);
+    data[0] = std.math.Complex(T){ .re = @as(T, 3.0), .im = @as(T, 4.0) };
+    data[1] = std.math.Complex(T){ .re = @as(T, 0.0), .im = @as(T, 0.0) };
+    calcMagnitude(T, data, out);
+    try expectApproxEqRel(out[0], @as(T, 5.0), @as(T, 1e-6));
+    try expectApproxEqRel(out[1], @as(T, 0.0), @as(T, 1e-6));
+}
+
+test "CalcMagnitude f32" { try testCalcMagnitudeGeneric(f32); }
+test "CalcMagnitude f64" { try testCalcMagnitudeGeneric(f64); }
+
 /// FFT 输入参数校验，n为长度，radix为基数（2或4）
 pub fn checkFftInput(n: usize, radix: usize) !void {
     if (n <= 1) return error.InvalidSize;
@@ -38,15 +71,15 @@ pub fn checkFftInput(n: usize, radix: usize) !void {
 }
 
 /// 归一化复数数组
-pub fn normalize(data: anytype, n: usize) void {
+pub fn normalize(comptime T: type, data: []std.math.Complex(T), n: usize) void {
     for (data) |*v| {
-        v.re /= @as(f64, @floatFromInt(n));
-        v.im /= @as(f64, @floatFromInt(n));
+        v.re /= @as(T, @floatFromInt(n));
+        v.im /= @as(T, @floatFromInt(n));
     }
 }
 
 /// 计算幅值谱
-pub fn calcMagnitude(data: anytype, out: []f64) void {
+pub fn calcMagnitude(comptime T: type, data: []const std.math.Complex(T), out: []T) void {
     const math = std.math;
     for (data, 0..) |v, i| {
         out[i] = math.sqrt(v.re * v.re + v.im * v.im);

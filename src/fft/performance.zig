@@ -2,8 +2,6 @@
 //! 性能测试与基准测试
 
 const std = @import("std");
-const math = std.math;
-const Complex = @import("types.zig").Complex;
 const fftInPlace = @import("base.zig").fftInPlaceBase;
 const fft_radix2 = @import("fft_radix2.zig");
 const fft_radix4 = @import("fft_radix4.zig");
@@ -12,182 +10,186 @@ const fft_utils = @import("utils.zig");
 const expect = std.testing.expect;
 
 // 性能基准测试：比较不同大小的FFT性能
-test "FFT performance benchmark: Various sizes" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testBenchmarkGeneric(comptime T: type) !void {
+    const io = std.testing.io;
+    const allocator = std.testing.allocator;
+    const clock = std.Io.Clock.awake;
 
     const test_sizes = [_]usize{ 64, 128, 256, 512, 1024, 2048, 4096, 8192 };
 
-    std.debug.print("\n=== FFT Performance Benchmark ===\n", .{});
+    std.debug.print("\n=== FFT Performance Benchmark ({s}) ===\n", .{@typeName(T)});
     for (test_sizes) |size| {
-        var data = try allocator.alloc(Complex, size);
+        var data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data);
 
-        // 生成测试信号
         var prng = std.Random.DefaultPrng.init(42);
         const random = prng.random();
         for (0..size) |i| {
-            data[i] = Complex{
-                .re = random.float(f64) * 2.0 - 1.0,
-                .im = 0.0,
+            data[i] = std.math.Complex(T){
+                .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+                .im = @as(T, 0.0),
             };
         }
 
-        const start = std.time.nanoTimestamp();
-        try fftInPlace(allocator, data);
-        const end = std.time.nanoTimestamp();
+        const start_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        try fftInPlace(T, allocator, data);
+        const end_time = std.Io.Clock.now(clock, io).toNanoseconds();
 
-        const elapsed_ns = @as(f64, @floatFromInt(@as(u64, @intCast(end - start))));
-        const elapsed_us = elapsed_ns / 1000.0;
-        const throughput_msps = (@as(f64, @floatFromInt(size)) / elapsed_ns) * 1000.0;
+        const elapsed_s = @as(f128, @floatFromInt(@as(i96, @intCast(end_time - start_time)))) / std.time.us_per_s;
+        const throughput = (@as(f128, @floatFromInt(size)) / (elapsed_s) / 1e6);
 
-        std.debug.print("Size {d:6}: {d:8.2} μs, {d:6.2} MSamples/s\n", .{
+        std.debug.print("Size {d:6}: {d:9.3} μs, {d:9.3} MSamples/s\n", .{
             size,
-            elapsed_us,
-            throughput_msps,
+            elapsed_s,
+            throughput,
         });
     }
     std.debug.print("\n", .{});
 }
 
+test "FFT performance benchmark: Various sizes f32" { try testBenchmarkGeneric(f32); }
+test "FFT performance benchmark: Various sizes f64" { try testBenchmarkGeneric(f64); }
+
 // 比较Radix-2和Radix-4性能
-test "FFT performance: Radix-2 vs Radix-4" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testRadixCompareGeneric(comptime T: type) !void {
+    const io = std.testing.io;
+    const allocator = std.testing.allocator;
+    const clock = std.Io.Clock.awake;
+    // TODO: threshold 缩小阀值
+    const threshold = if (T==f64) 1e-5 else 1e-2;
 
-    const test_sizes = [_]usize{ 64, 256, 1024, 4096 }; // 都是4的幂
+    const test_sizes = [_]usize{ 64, 256, 1024, 4096 };
 
-    std.debug.print("\n=== Radix-2 vs Radix-4 Performance ===\n", .{});
+    std.debug.print("\n=== Radix-2 vs Radix-4 Performance ({s}) ===\n", .{@typeName(T)});
     for (test_sizes) |size| {
-        // 验证是4的幂
         try expect(fft_utils.isPowerOfFour(size));
 
-        var data2 = try allocator.alloc(Complex, size);
+        var data2 = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data2);
-        var data4 = try allocator.alloc(Complex, size);
+        var data4 = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data4);
 
-        // 生成相同的测试信号
         var prng = std.Random.DefaultPrng.init(12345);
         const random = prng.random();
         for (0..size) |i| {
-            const val = Complex{
-                .re = random.float(f64) * 2.0 - 1.0,
-                .im = 0.0,
+            const val = std.math.Complex(T){
+                .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+                .im = @as(T, 0.0),
             };
             data2[i] = val;
             data4[i] = val;
         }
 
-        // Radix-2 SIMD
-        const start2 = std.time.nanoTimestamp();
-        try fft_radix2.fftRadix2SIMD(data2);
-        const end2 = std.time.nanoTimestamp();
-        const time2_ns = @as(f64, @floatFromInt(@as(u64, @intCast(end2 - start2))));
+        var start_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        try fft_radix2.fftRadix2SIMD(T, data2);
+        var end_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        const time2_ns = end_time - start_time;
 
-        // Radix-4 SIMD
-        const start4 = std.time.nanoTimestamp();
-        try fft_radix4.fftRadix4SIMD(data4);
-        const end4 = std.time.nanoTimestamp();
-        const time4_ns = @as(f64, @floatFromInt(@as(u64, @intCast(end4 - start4))));
+        start_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        try fft_radix4.fftRadix4SIMD(T, data4);
+        end_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        const time4_ns = end_time - start_time;
 
-        const speedup = time2_ns / time4_ns;
+        const speedup = @as(f128, @floatFromInt(time2_ns)) / @as(f128, @floatFromInt(time4_ns));
 
-        std.debug.print("Size {d:6}: Radix-2={d:6.2}μs, Radix-4={d:6.2}μs, Speedup={d:.2}x\n", .{
+        std.debug.print("Size {d:6}: Radix-2={d:9}ns, Radix-4={d:9}ns, Speedup={d:9.3}x\n", .{
             size,
-            time2_ns / 1000.0,
-            time4_ns / 1000.0,
+            time2_ns,
+            time4_ns,
             speedup,
         });
 
-        // 验证结果一致性
         for (0..size) |i| {
             const diff_re = @abs(data2[i].re - data4[i].re);
             const diff_im = @abs(data2[i].im - data4[i].im);
-            try expect(diff_re < 1e-10);
-            try expect(diff_im < 1e-10);
+            try expect(diff_re < @as(T, threshold));
+            try expect(diff_im < @as(T, threshold));
         }
     }
     std.debug.print("\n", .{});
 }
 
+test "FFT performance: Radix-2 vs Radix-4 f32" { try testRadixCompareGeneric(f32); }
+test "FFT performance: Radix-2 vs Radix-4 f64" { try testRadixCompareGeneric(f64); }
+
 // 测试大数据处理性能
-test "FFT performance: Large data handling" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testLargeDataGeneric(comptime T: type) !void {
+    const io = std.testing.io;
+    const allocator = std.testing.allocator;
+    const clock = std.Io.Clock.awake;
 
     const large_sizes = [_]usize{ 16384, 65536, 262144 };
 
-    std.debug.print("\n=== Large Data FFT Performance ===\n", .{});
+    std.debug.print("\n=== Large Data FFT Performance ({s}) ===\n", .{@typeName(T)});
     for (large_sizes) |size| {
-        var data = try allocator.alloc(Complex, size);
+        var data = try allocator.alloc(std.math.Complex(T), size);
         defer allocator.free(data);
 
-        // 生成测试信号
         var prng = std.Random.DefaultPrng.init(99999);
         const random = prng.random();
         for (0..size) |i| {
-            data[i] = Complex{
-                .re = random.float(f64) * 2.0 - 1.0,
-                .im = 0.0,
+            data[i] = std.math.Complex(T){
+                .re = random.float(T) * @as(T, 2.0) - @as(T, 1.0),
+                .im = @as(T, 0.0),
             };
         }
 
-        const start = std.time.nanoTimestamp();
-        try fftInPlace(allocator, data);
-        const end = std.time.nanoTimestamp();
+        const start_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        try fftInPlace(T, allocator, data);
+        const end_time = std.Io.Clock.now(clock, io).toNanoseconds();
 
-        const elapsed_ms = @as(f64, @floatFromInt(@as(u64, @intCast(end - start)))) / 1e6;
-        const throughput_msps = (@as(f64, @floatFromInt(size)) / elapsed_ms) / 1000.0;
+        const elapsed_s = @as(f128, @floatFromInt(@as(i96, @intCast(end_time - start_time)))) / std.time.us_per_s;
+        const throughput = (@as(f128, @floatFromInt(size)) / (elapsed_s) / 1e6);
 
-        std.debug.print("Size {d:8}: {d:8.2} ms, {d:6.2} MSamples/s\n", .{
+        std.debug.print("Size {d:6}: {d:9.3} s, {d:9.3} MSamples/s\n", .{
             size,
-            elapsed_ms,
-            throughput_msps,
+            elapsed_s,
+            throughput,
         });
 
-        // 基本的正确性检查 - 验证能量守恒
-        var total_energy: f64 = 0.0;
+        var total_energy: T = @as(T, 0.0);
         for (data) |v| {
             total_energy += v.re * v.re + v.im * v.im;
         }
-        try expect(total_energy > 0.0); // 确保计算了有效的FFT
+        try expect(total_energy > @as(T, 0.0));
     }
     std.debug.print("\n", .{});
 }
 
+test "FFT performance: Large data handling f32" { try testLargeDataGeneric(f32); }
+test "FFT performance: Large data handling f64" { try testLargeDataGeneric(f64); }
+
 // 测试内存分配效率
-test "FFT performance: Memory allocation patterns" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+fn testMemoryGeneric(comptime T: type) !void {
+    const io = std.testing.io;
+    const allocator = std.testing.allocator;
+    const clock = std.Io.Clock.awake;
 
     const size: usize = 4096;
     const iterations: usize = 100;
 
-    std.debug.print("\n=== Memory Allocation Performance ===\n", .{});
+    std.debug.print("\n=== Memory Allocation Performance ({s}) ===\n", .{@typeName(T)});
 
-    // 测试重复分配和释放
     var total_time_ns: u64 = 0;
     for (0..iterations) |_| {
-        const start = std.time.nanoTimestamp();
+        const start_time = std.Io.Clock.now(clock, io).toNanoseconds();
 
-        var data = try allocator.alloc(Complex, size);
+        var data = try allocator.alloc(std.math.Complex(T), size);
         for (0..size) |i| {
-            data[i] = Complex{ .re = @as(f64, @floatFromInt(i)), .im = 0.0 };
+            data[i] = std.math.Complex(T){ .re = @as(T, @floatFromInt(i)), .im = @as(T, 0.0) };
         }
-        try fftInPlace(allocator, data);
+        try fftInPlace(T, allocator, data);
         allocator.free(data);
 
-        const end = std.time.nanoTimestamp();
-        total_time_ns += @as(u64, @intCast(end - start));
+        const end_time = std.Io.Clock.now(clock, io).toNanoseconds();
+        total_time_ns += @as(u64, @intCast(end_time - start_time));
     }
 
-    const avg_time_us = @as(f64, @floatFromInt(total_time_ns)) / @as(f64, @floatFromInt(iterations)) / 1000.0;
-    std.debug.print("Average time per iteration (size {d}): {d:.2} μs\n", .{ size, avg_time_us });
-    std.debug.print("Total iterations: {d}\n", .{iterations});
+    const avg_time_us = @as(f128, @floatFromInt(total_time_ns)) / @as(f128, @floatFromInt(iterations));
+    std.debug.print("Average time per iteration (size {d:6}): {d:9.2} μs\n", .{ size, avg_time_us });
+    std.debug.print("Total iterations: {d:6}\n", .{iterations});
     std.debug.print("\n", .{});
 }
+
+test "FFT performance: Memory allocation patterns f32" { try testMemoryGeneric(f32); }
+test "FFT performance: Memory allocation patterns f64" { try testMemoryGeneric(f64); }

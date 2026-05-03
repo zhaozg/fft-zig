@@ -2,6 +2,101 @@
 
 高性能 Zig FFT（快速傅里叶变换）实现，支持 SIMD 优化。
 
+## 特性
+
+- **泛型浮点类型**：支持 `f32` 和 `f64`，通过 `comptime T: type` 参数指定
+- **SIMD 优化**：Radix-2 和 Radix-4 均支持 SIMD 向量化
+- **多种算法**：Radix-2、Radix-4、混合基（Bluestein）、并行处理
+- **向后兼容**：提供 `fft_f64` 等别名，旧代码无需修改
+
+## 快速开始
+
+### 安装
+
+将以下内容添加到 `build.zig.zon`：
+
+```zig
+.{
+    .name = "my_project",
+    .version = "0.1.0",
+    .dependencies = .{
+        .fft = .{
+            .url = "https://github.com/yourusername/fft-zig/archive/refs/tags/v2.0.0.tar.gz",
+            .hash = "...",
+        },
+    },
+}
+```
+
+然后在 `build.zig` 中添加：
+
+```zig
+const fft_module = b.dependency("fft", .{ .target = target, .optimize = optimize }).module("fft");
+exe_mod.addImport("fft", fft_module);
+```
+
+### 基本用法
+
+```zig
+const std = @import("std");
+const fft = @import("fft");
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const N = 1024;
+
+    // 使用 f32（更快，内存更少）
+    const input_f32 = try allocator.alloc(f32, N);
+    defer allocator.free(input_f32);
+    // ... 填充数据 ...
+    const output_f32 = try allocator.alloc(std.math.Complex(f32), N);
+    defer allocator.free(output_f32);
+    try fft.fft(f32, allocator, input_f32, output_f32);
+
+    // 使用 f64（更高精度）
+    const input_f64 = try allocator.alloc(f64, N);
+    defer allocator.free(input_f64);
+    // ... 填充数据 ...
+    const output_f64 = try allocator.alloc(std.math.Complex(f64), N);
+    defer allocator.free(output_f64);
+    try fft.fft(f64, allocator, input_f64, output_f64);
+
+    // 就地 FFT（原地变换）
+    var data = try allocator.alloc(std.math.Complex(f64), N);
+    defer allocator.free(data);
+    // ... 填充复数数据 ...
+    try fft.fftInPlace(f64, allocator, data);
+}
+```
+
+### 向后兼容用法
+
+如果你不想修改现有代码，可以使用便捷别名：
+
+```zig
+const fft = @import("fft");
+
+// 这些与旧版 API 签名相同
+// fft_f64(allocator, input, output) 等价于 fft(f64, allocator, input, output)
+try fft.fft_f64(allocator, input, output);
+try fft.fftInPlace_f64(allocator, data);
+```
+
+### 更多示例
+
+查看 [examples/](examples/) 目录获取完整示例：
+
+- [examples/f32_example.zig](examples/f32_example.zig) - f32 FFT 示例
+- [examples/f64_example.zig](examples/f64_example.zig) - f64 FFT 示例
+- [examples/comparison.zig](examples/comparison.zig) - f32 vs f64 性能对比
+
+## 迁移指南
+
+从旧版（v1.x，硬编码 f64）迁移到新版（v2.x，泛型），请参阅 [MIGRATION.md](MIGRATION.md)。
+
 ## 当前状态 / Current Status
 
 - ✅ **CI 测试通过** - All tests passing on Zig 0.14.1 and 0.15.1
