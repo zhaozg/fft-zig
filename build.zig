@@ -50,6 +50,46 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
+    // ============================================================
+    // 基准测试 (zbench)
+    // ============================================================
+
+    // 获取 zbench 依赖
+    const zbench_dep = b.dependency("zbench", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const bench_mod = b.createModule(.{
+        .root_source_file = b.path("src/bench.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    bench_mod.addImport("fft", lib_mod);
+    bench_mod.addImport("zbench", zbench_dep.module("zbench"));
+
+    const bench_exe = b.addExecutable(.{
+        .name = "bench",
+        .root_module = bench_mod,
+    });
+
+    b.installArtifact(bench_exe);
+
+    const bench_cmd = b.addRunArtifact(bench_exe);
+    bench_cmd.step.dependOn(b.getInstallStep());
+
+    if (b.args) |args| {
+        bench_cmd.addArgs(args);
+    }
+
+    const bench_step = b.step("bench", "Run FFT benchmarks using zbench");
+    bench_step.dependOn(&bench_cmd.step);
+
+    // ============================================================
+    // 测试
+    // ============================================================
+
     const tst_mod = b.createModule(.{
         .root_source_file = b.path("src/test.zig"),
         .target = target,
@@ -70,9 +110,6 @@ pub fn build(b: *std.Build) void {
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);

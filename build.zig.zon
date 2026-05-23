@@ -1,10 +1,14 @@
 .{
     .name = .fft,
     .version = "0.1.1",
-    .fingerprint = 0xd7d4178404b7d658, // Changing this has security and trust implications.
-    .minimum_zig_version = "0.14.1",
+    .fingerprint = 0xd7d4178404b7d658,
+    .minimum_zig_version = "0.16.0",
 
     .dependencies = .{
+        .zbench = .{
+            .url = "https://github.com/hendriknielaender/zBench/archive/refs/tags/v0.13.0.tar.gz",
+            .hash = "zbench-0.13.0-YTdc7xVBAQCCMC-IdLLuotBeiNNNm8k9Pi2V4VYqrwfI",
+        },
     },
 
     .paths = .{

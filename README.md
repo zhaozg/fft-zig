@@ -118,6 +118,91 @@ zig build test
 zig fmt build.zig src/
 ```
 
+## 基准测试工具 / Benchmark Tool
+
+项目内置了基于 [zbench](https://github.com/hendriknielaender/zBench) 的 FFT 基准测试工具，用于评估不同配置下的 FFT 性能。
+
+### 基本用法
+
+```bash
+# 运行所有基准测试（默认 Debug 模式，测试 f32 和 f64）
+zig build bench
+
+# 指定 FFT 大小和浮点类型
+zig build bench -- --size=1024 --type=f64
+
+# 使用 ReleaseFast 模式运行（更接近真实性能）
+zig build bench -Doptimize=ReleaseFast -- --size=4096 --type=all
+```
+
+### 命令行选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `--size=N` | FFT 大小（2 的幂） | `1024` |
+| `--type=T` | 浮点类型：`f32`、`f64` 或 `all` | `all` |
+| `--no-inplace` | 跳过 in-place FFT 测试 | 启用 |
+| `--no-outofplace` | 跳过 out-of-place FFT 测试 | 启用 |
+| `--with-dft` | 包含 DFT 参考测试（很慢） | 禁用 |
+| `--help`, `-h` | 显示帮助信息 | |
+
+### 构建选项
+
+| 选项 | 说明 | 默认值 |
+|------|------|--------|
+| `-Doptimize=Debug` | Debug 模式（默认） | Debug |
+| `-Doptimize=ReleaseFast` | ReleaseFast 模式 | |
+| `-Doptimize=ReleaseSafe` | ReleaseSafe 模式 | |
+| `-Doptimize=ReleaseSmall` | ReleaseSmall 模式 | |
+
+### 输出示例
+
+```
+╔══════════════════════════════════════════╗
+║      FFT 基准测试工具 (zbench)           ║
+╚══════════════════════════════════════════╝
+ I: In-Place
+ O: Out-of-Place
+
+测试时间: 2026-05-23 06:03:39
+优化模式: ReleaseFast
+FFT 版本: 0.1.1
+
+配置:
+  FFT 大小: 64
+  浮点类型: f64
+  In-Place: yes
+  Out-of-Place: yes
+  DFT 参考: no
+
+系统信息:
+  操作系统: macos x86_64
+  CPU:      Intel(R) Core(TM) i7-1068NG7 CPU @ 2.30GHz
+  核心数:   4
+  内存:     16.000GiB
+
+共 12 个基准测试
+
+benchmark     runs     total time     time/run (avg ± σ)    (min ... max)                p75        p99        p995
+--------------------------------------------------------------------------------------------------------------------------
+I f64 64      100000   184.554ms      1.845us ± 1.085us     (1.749us ... 75.996us)       1.804us    1.966us    1.974us
+O f64 64      83080    2.162s         26.025us ± 7.223us    (21.794us ... 395.741us)     25.932us   58.798us   68.48us
+...
+```
+
+输出说明：
+- **I**: In-Place FFT（原地变换）
+- **O**: Out-of-Place FFT（非原地变换）
+- **runs**: 迭代次数
+- **total time**: 总耗时
+- **time/run (avg ± σ)**: 单次平均耗时 ± 标准差
+- **(min ... max)**: 最小 ... 最大耗时
+- **p75/p99/p995**: 75%/99%/99.5% 分位耗时
+
+### 更新性能跟踪文件
+
+> zig-out/bin/bench --with-dft > BenchLog.txt
+
 ## 功能特性 / Features
 
 - ✅ Radix-2 FFT (SIMD 优化)
