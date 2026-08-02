@@ -1,5 +1,9 @@
 const std = @import("std");
 
+/// zbench 0.14.x 依赖 zig 0.17 的 std API（field_names / std.Io 等），
+/// 因此基准测试步骤仅在 zig 0.17+ 下启用；zig 0.16 下跳过。
+const is_zig_17 = @import("builtin").zig_version.minor >= 17;
+
 fn getRunArgs(b: *std.Build) ?[]const []const u8 {
     if (@hasField(std.Build, "args")) {
         return b.args;
@@ -53,40 +57,42 @@ pub fn build(b: *std.Build) void {
 
     // ============================================================
     // 基准测试 (zbench) – 直接使用源码，不依赖其 build.zig 的模块
+    // 仅 zig 0.17+ 启用（zbench 0.14.x 要求 zig 0.17）
     // ============================================================
 
-    const zbench_dep = b.dependency("zbench", .{
-        .target = target,
-        .optimize = optimize,
-        .with_examples = false, // 跳过示例（避免 addModule 冲突）
-    });
+    if (is_zig_17) {
+        const zbench_dep = b.dependency("zbench", .{
+            .target = target,
+            .optimize = optimize,
+        });
 
-    // 直接从依赖包中取 zbench 的根源文件
-    const zbench_mod = b.createModule(.{
-        .root_source_file = zbench_dep.path("src/zbench.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+        // 直接从依赖包中取 zbench 的根源文件
+        const zbench_mod = b.createModule(.{
+            .root_source_file = zbench_dep.path("src/zbench.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
 
-    const bench_mod = b.createModule(.{
-        .root_source_file = b.path("src/bench.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    bench_mod.addImport("fft", lib_mod);
-    bench_mod.addImport("zbench", zbench_mod);
+        const bench_mod = b.createModule(.{
+            .root_source_file = b.path("src/bench.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        bench_mod.addImport("fft", lib_mod);
+        bench_mod.addImport("zbench", zbench_mod);
 
-    const bench_exe = b.addExecutable(.{
-        .name = "bench",
-        .root_module = bench_mod,
-    });
-    b.installArtifact(bench_exe);
+        const bench_exe = b.addExecutable(.{
+            .name = "bench",
+            .root_module = bench_mod,
+        });
+        b.installArtifact(bench_exe);
 
-    const bench_cmd = b.addRunArtifact(bench_exe);
-    bench_cmd.step.dependOn(b.getInstallStep());
-    if (run_args) |args| bench_cmd.addArgs(args);
-    const bench_step = b.step("bench", "Run FFT benchmarks using zbench");
-    bench_step.dependOn(&bench_cmd.step);
+        const bench_cmd = b.addRunArtifact(bench_exe);
+        bench_cmd.step.dependOn(b.getInstallStep());
+        if (run_args) |args| bench_cmd.addArgs(args);
+        const bench_step = b.step("bench", "Run FFT benchmarks using zbench");
+        bench_step.dependOn(&bench_cmd.step);
+    }
 
     // ============================================================
     // 测试

@@ -122,6 +122,10 @@ zig fmt build.zig src/
 
 项目内置了基于 [zbench](https://github.com/hendriknielaender/zBench) 的 FFT 基准测试工具，用于评估不同配置下的 FFT 性能。
 
+> **注意**：`zig build bench` 依赖 zbench 0.14.x，其仅支持 Zig 0.17+；
+> 项目核心（`zig build` / `zig build test`）同时支持 Zig 0.16 与 0.17，
+> 在 Zig 0.16 下不提供 `bench` 步骤。
+
 ### 基本用法
 
 ```bash
