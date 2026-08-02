@@ -11,13 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        zig-version: ['0.16.0']
+        zig-version: ['0.17.0-dev.1516+8a4b5424']
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Setup Zig
-      uses: mlugg/setup-zig@v2
+      uses: https://codeberg.org/mlugg/setup-zig@v2
       with:
         version: ${{ matrix.zig-version }}
 
