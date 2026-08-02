@@ -99,7 +99,7 @@ try fft.fftInPlace_f64(allocator, data);
 
 ## 当前状态 / Current Status
 
-- ✅ **CI 测试通过** - All tests passing on Zig 0.14.1 and 0.15.1
+- ✅ **CI 测试通过** - All tests passing on Zig 0.16 and 0.17
 - ✅ **FFT 精度正确** - FFT accuracy verified with comprehensive tests (46/46 tests passing)
 - ✅ **支持大数据** - Supports large data FFT (up to 5M samples tested)
 - ✅ **性能优化** - Radix-4 is 60-64% faster than Radix-2
@@ -244,19 +244,8 @@ O f64 64      83080    2.162s         26.025us ± 7.223us    (21.794us ... 395.7
 
 ## 兼容性 / Compatibility
 
-- Zig 0.14.1 ✅
-- Zig 0.15.1 ✅
-
-> 支持 Zig 0.14.1 和 0.15.1 的 ArrayList API 差异：
-
-```zig
-// Zig 0.14.1: allocator 存储在结构体中
-var list = std.ArrayList(T).init(allocator);
-
-// Zig 0.15.1: allocator 传递给方法
-var list = std.ArrayList(T){ .items = &[_]T{}, .capacity = 0 };
-list.append(allocator, item);
-```
+- Zig 0.16.0 ✅
+- Zig 0.17.0 ✅
 
 ## 技术说明
 
